@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { SiteSettings, Event } from "@/types/database";
-import { Button } from "@/lib/../components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { Music2, Sparkles, Utensils, CheckCircle2, ArrowRight } from "lucide-react";
 
 export interface AboutSectionProps {

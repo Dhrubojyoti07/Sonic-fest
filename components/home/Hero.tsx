@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { SiteSettings, Event } from "@/types/database";
-import { Button } from "@/lib/../components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { Calendar, MapPin, Play, Sparkles, X } from "lucide-react";
 import { formatDate } from "@/lib/utils/cn";
 
