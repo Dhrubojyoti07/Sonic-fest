@@ -23,30 +23,29 @@ export async function GET(req: NextRequest) {
 
     const supabase = await createServerSupabaseClient();
 
-    // Query registration by UUID or ticket_code
+    // Query registration by UUID or ticket_code safely
     let registration: any = null;
     try {
-      const { data, error } = await supabase
+      // 1. Try by UUID primary key first (guaranteed column)
+      const { data: byId } = await supabase
         .from("registrations")
         .select("*, events(*)")
-        .or(`id.eq.${cleanCode},ticket_code.eq.${cleanCode}`)
+        .eq("id", cleanCode)
         .maybeSingle();
 
-      if (data) {
-        registration = data;
-      }
-    } catch {
-      // Safe fallback if table doesn't have ticket_code yet
-      try {
-        const { data } = await supabase
+      if (byId) {
+        registration = byId;
+      } else {
+        // 2. Try by ticket_code (if column exists)
+        const { data: byCode } = await supabase
           .from("registrations")
           .select("*, events(*)")
-          .eq("id", cleanCode)
+          .eq("ticket_code", cleanCode)
           .maybeSingle();
-        if (data) registration = data;
-      } catch {
-        // not found
+        if (byCode) registration = byCode;
       }
+    } catch {
+      // Safe fallback
     }
 
     // Demo check for preview mode
@@ -157,10 +156,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Check current registration state
+    // Check current registration state safely
     const { data: currentReg, error: fetchErr } = await supabase
       .from("registrations")
-      .select("id, status, checked_in_at, name, attendees")
+      .select("*")
       .eq("id", id)
       .maybeSingle();
 

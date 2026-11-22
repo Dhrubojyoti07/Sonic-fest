@@ -37,18 +37,29 @@ export default async function TicketPassPage({ params }: TicketPageProps) {
   const { id } = await params;
   const supabase = await createServerSupabaseClient();
 
-  // Look up registration by id (UUID) or ticket_code
+  // Look up registration by id (UUID) or ticket_code safely
   let registration: any = null;
   try {
-    const { data } = await supabase
+    // 1. Try by UUID primary key first (never fails with column missing errors)
+    const { data: byId } = await supabase
       .from("registrations")
       .select("*, events(*)")
-      .or(`id.eq.${id},ticket_code.eq.${id}`)
+      .eq("id", id)
       .maybeSingle();
 
-    registration = data;
-  } catch (err) {
-    console.warn("Ticket fetch warning:", err);
+    if (byId) {
+      registration = byId;
+    } else {
+      // 2. Fallback to ticket_code if column exists
+      const { data: byCode } = await supabase
+        .from("registrations")
+        .select("*, events(*)")
+        .eq("ticket_code", id)
+        .maybeSingle();
+      if (byCode) registration = byCode;
+    }
+  } catch {
+    // Graceful handling
   }
 
   // Fallback demo ticket if id is a preview reference
