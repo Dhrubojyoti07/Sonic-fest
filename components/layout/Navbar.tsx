@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Menu, X, Sparkles, Shield } from "lucide-react";
+import { Menu, X, Sparkles, Shield, User, LogOut, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { createClient } from "@/lib/supabase/client";
 
 export interface NavbarProps {
   siteName?: string;
@@ -22,7 +23,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [user, setUser] = useState<{ email?: string; full_name?: string } | null>(null);
+  const [isDemoUser, setIsDemoUser] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,6 +35,82 @@ export const Navbar: React.FC<NavbarProps> = ({
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Auth State Listener
+  useEffect(() => {
+    const supabase = createClient();
+
+    const fetchUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (data?.user) {
+          setUser({
+            email: data.user.email,
+            full_name: data.user.user_metadata?.full_name || data.user.email?.split("@")[0],
+          });
+        } else {
+          // Check demo cookies
+          const hasCustomerDemo = document.cookie.includes("sonic_fest_customer_demo=true");
+          const hasAdminDemo = document.cookie.includes("sonic_fest_admin_demo=true");
+          if (hasCustomerDemo || hasAdminDemo) {
+            setIsDemoUser(true);
+            setUser({ email: "guest@sonicfest.live", full_name: "Guest Explorer" });
+          } else {
+            setUser(null);
+            setIsDemoUser(false);
+          }
+        }
+      } catch {
+        setUser(null);
+      }
+    };
+
+    fetchUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          email: session.user.email,
+          full_name:
+            session.user.user_metadata?.full_name || session.user.email?.split("@")[0],
+        });
+        setIsDemoUser(false);
+      } else {
+        const hasDemo =
+          document.cookie.includes("sonic_fest_customer_demo=true") ||
+          document.cookie.includes("sonic_fest_admin_demo=true");
+        if (hasDemo) {
+          setIsDemoUser(true);
+          setUser({ email: "guest@sonicfest.live", full_name: "Guest Explorer" });
+        } else {
+          setUser(null);
+          setIsDemoUser(false);
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Handle Logout
+  const handleLogout = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      document.cookie = "sonic_fest_customer_demo=; path=/; max-age=0";
+      document.cookie = "sonic_fest_admin_demo=; path=/; max-age=0";
+      setUser(null);
+      setIsDemoUser(false);
+      router.push("/login");
+      router.refresh();
+    } catch {
+      window.location.href = "/api/auth/signout?next=/login";
+    }
+  };
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -112,8 +192,36 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </nav>
 
-          {/* CTA & Admin Link */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* CTA, User Auth & Admin Link */}
+          <div className="hidden md:flex items-center gap-3">
+            {/* Authenticated Customer Pill / Sign In Button */}
+            {user ? (
+              <div className="flex items-center gap-2 bg-surface-elevated/80 border border-white/10 rounded-full px-3 py-1.5 backdrop-blur-md">
+                <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-xs font-semibold text-white max-w-[110px] truncate" title={user.email}>
+                  {user.full_name || user.email?.split("@")[0]}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  title="Sign Out"
+                  className="p-1 text-foreground-muted hover:text-red-400 rounded-full transition-colors ml-1"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-foreground-muted hover:text-white hover:bg-white/5 transition-all"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </Link>
+            )}
+
             <Link
               href="/admin/dashboard"
               title="Admin Portal"
@@ -121,6 +229,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Shield className="w-4 h-4" />
             </Link>
+
             <Link href={ctaDestination}>
               <Button
                 variant="primary"
@@ -148,6 +257,39 @@ export const Navbar: React.FC<NavbarProps> = ({
       {isOpen && (
         <div className="md:hidden fixed inset-x-0 top-[60px] bg-[#0c0a1a]/95 backdrop-blur-2xl border-b border-white/10 p-6 shadow-2xl transition-all">
           <nav className="flex flex-col gap-3">
+            {/* Mobile User Status */}
+            {user ? (
+              <div className="p-3 rounded-xl bg-surface-elevated/80 border border-white/10 flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white">
+                      {user.full_name || "Festival Attendee"}
+                    </div>
+                    <div className="text-[11px] text-foreground-dark">{user.email}</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 font-bold px-2 py-1 rounded-lg"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Out</span>
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="p-3 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center gap-2 text-sm font-bold text-primary mb-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In / Create Account</span>
+              </Link>
+            )}
+
             {navLinks.map((link) => {
               const isActive =
                 link.href === "/"

@@ -22,6 +22,30 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 
+// Google 4-Color SVG Icon
+function GoogleIcon() {
+  return (
+    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+      <path
+        fill="#4285F4"
+        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.16 0 9.97 0 12c0 2.03.45 3.84 1.25 5.42l4.03-3.15Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"
+      />
+    </svg>
+  );
+}
+
 function AdminLoginForm() {
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -33,6 +57,7 @@ function AdminLoginForm() {
 
   // States
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [signupSuccess, setSignupSuccess] = useState(false);
@@ -54,8 +79,40 @@ function AdminLoginForm() {
   useEffect(() => {
     if (errorQuery === "verification_failed") {
       setErrorMsg("Email verification link expired or is invalid. Please try again.");
+    } else if (errorQuery === "oauth_failed") {
+      setErrorMsg("Google Sign-In was cancelled or failed. Please retry.");
     }
   }, [errorQuery]);
+
+  // Google OAuth Sign In
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setErrorMsg(null);
+    try {
+      const siteUrl = window.location.origin;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(nextUrl)}`,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+
+      if (error) {
+        setErrorMsg(
+          error.message ||
+            "Google sign-in could not be initiated. Check if Google auth is enabled in Supabase."
+        );
+        setGoogleLoading(false);
+      }
+    } catch {
+      setErrorMsg("Failed to connect with Google authentication provider.");
+      setGoogleLoading(false);
+    }
+  };
 
   // Handle Sign In
   const handleSignIn = async (e: React.FormEvent) => {
@@ -207,6 +264,34 @@ function AdminLoginForm() {
 
         {/* Auth Container */}
         <div className="p-8 rounded-3xl bg-surface-subtle border border-white/10 shadow-2xl backdrop-blur-xl">
+          {/* Google Auth Button */}
+          {!signupSuccess && (
+            <div className="space-y-4 mb-6">
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading || loading}
+                className="w-full flex items-center justify-center gap-3 px-5 py-3 rounded-2xl bg-white text-gray-900 font-bold text-xs uppercase tracking-wider hover:bg-gray-100 transition-all shadow-md active:scale-[0.98] disabled:opacity-50"
+              >
+                {googleLoading ? (
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin" />
+                ) : (
+                  <GoogleIcon />
+                )}
+                <span>Continue with Google</span>
+              </button>
+
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10" />
+                </div>
+                <span className="relative px-3 bg-surface-subtle text-[11px] font-bold uppercase tracking-wider text-foreground-dark">
+                  Or admin credentials
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Tab Navigation */}
           {!signupSuccess && (
             <div className="grid grid-cols-2 p-1 rounded-2xl bg-surface-elevated border border-white/10 mb-6">

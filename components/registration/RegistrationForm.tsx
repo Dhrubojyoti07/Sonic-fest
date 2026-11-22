@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Event } from "@/types/database";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { createClient } from "@/lib/supabase/client";
 import {
   Ticket,
   User,
@@ -51,6 +52,28 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     phone: "",
     attendees: 1,
   });
+
+  // Prefill authenticated customer details
+  useEffect(() => {
+    try {
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user) {
+          setFormData((prev) => ({
+            ...prev,
+            name:
+              prev.name ||
+              data.user.user_metadata?.full_name ||
+              data.user.email?.split("@")[0] ||
+              "",
+            email: prev.email || data.user.email || "",
+          }));
+        }
+      });
+    } catch {
+      // safe fallback
+    }
+  }, []);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
