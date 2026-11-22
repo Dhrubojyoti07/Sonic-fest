@@ -90,10 +90,11 @@ function AdminLoginForm() {
     setErrorMsg(null);
     try {
       const siteUrl = window.location.origin;
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(nextUrl)}`,
+          skipBrowserRedirect: true,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
@@ -102,11 +103,33 @@ function AdminLoginForm() {
       });
 
       if (error) {
-        setErrorMsg(
-          error.message ||
-            "Google sign-in could not be initiated. Check if Google auth is enabled in Supabase."
-        );
+        setErrorMsg(error.message);
         setGoogleLoading(false);
+        return;
+      }
+
+      if (data?.url) {
+        try {
+          const res = await fetch(data.url);
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            if (
+              body?.msg?.includes("not enabled") ||
+              body?.error_code === "validation_failed" ||
+              res.status === 400
+            ) {
+              setErrorMsg(
+                "Google Sign-In is not yet enabled in your Supabase Dashboard. Turn on Google under Authentication > Providers in Supabase, or sign in below with your admin credentials."
+              );
+              setGoogleLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // If cross-origin prevents probe, proceed to OAuth URL
+        }
+
+        window.location.href = data.url;
       }
     } catch {
       setErrorMsg("Failed to connect with Google authentication provider.");
