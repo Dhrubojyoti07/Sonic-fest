@@ -15,7 +15,7 @@ import { EventCard } from "@/components/events/EventCard";
 import { GalleryGrid } from "@/components/gallery/GalleryGrid";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, Sparkles, Ticket } from "lucide-react";
+import { ArrowRight, Sparkles, Ticket, QrCode } from "lucide-react";
 
 export const revalidate = 60;
 
@@ -106,7 +106,47 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 7. Call To Action Banner */}
+      {/* 7. Fast-Track Attendee Pass Vault & Fast Track Entry Banner */}
+      <section className="relative py-16 bg-gradient-to-b from-[#08070e] to-[#0d0b1d] border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="p-8 sm:p-12 rounded-3xl bg-surface-subtle/80 border border-primary/30 backdrop-blur-xl flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="space-y-3 max-w-xl text-center md:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
+                <Ticket className="w-3.5 h-3.5" />
+                <span>Fast-Track Admission</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
+                Already Booked Your Festival Pass?
+              </h2>
+              <p className="text-sm text-foreground-muted leading-relaxed">
+                Retrieve your digital wristband voucher, gate admission QR code, and check your turnstile check-in status in the Attendee Vault.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto shrink-0">
+              <Link href="/my-passes" className="w-full sm:w-auto">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="w-full font-bold shadow-glow"
+                  leftIcon={<QrCode className="w-5 h-5 text-white" />}
+                >
+                  View My Booked Passes
+                </Button>
+              </Link>
+              <Link href="/register" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full">
+                  Book New Pass
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. Call To Action Banner */}
       <section className="relative py-20 bg-gradient-to-r from-primary/20 via-accent-purple/20 to-primary/20 border-y border-white/10 overflow-hidden">
         <div className="absolute inset-0 bg-[#0c0a1a]/85 backdrop-blur-xl" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">

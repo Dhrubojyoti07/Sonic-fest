@@ -117,8 +117,8 @@ export async function updateSession(request: NextRequest) {
       if (isAuthorizedAdmin) {
         url.pathname = "/admin/dashboard";
       } else {
-        const nextParam = request.nextUrl.searchParams.get("next") || "/";
-        url.pathname = nextParam.startsWith("/") ? nextParam : "/";
+        const nextParam = request.nextUrl.searchParams.get("next") || "/my-passes";
+        url.pathname = nextParam.startsWith("/") ? nextParam : "/my-passes";
       }
 
       return NextResponse.redirect(url);

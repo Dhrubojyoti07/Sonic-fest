@@ -22,9 +22,9 @@ export async function GET(request: Request) {
       let targetPath = next.startsWith("/") ? next : `/${next}`;
       if (isAdminEmail(user?.email)) {
         targetPath = "/admin/dashboard";
-      } else if (targetPath.startsWith("/admin")) {
-        // Disallow non-admin emails from reaching admin paths
-        targetPath = "/";
+      } else if (targetPath.startsWith("/admin") || targetPath === "/") {
+        // Disallow non-admin emails from reaching admin paths & direct to customer passes
+        targetPath = "/my-passes";
       }
 
       if (isLocalEnv) {

@@ -159,7 +159,8 @@ function CustomerLoginForm() {
         if (isAdminEmail(userEmail)) {
           router.push("/admin/dashboard");
         } else {
-          const destination = nextUrl.startsWith("/admin") ? "/" : nextUrl;
+          const destination =
+            nextUrl.startsWith("/admin") || nextUrl === "/" ? "/my-passes" : nextUrl;
           router.push(destination);
         }
         router.refresh();
@@ -212,7 +213,8 @@ function CustomerLoginForm() {
         if (isAdminEmail(userEmail)) {
           router.push("/admin/dashboard");
         } else {
-          const destination = nextUrl.startsWith("/admin") ? "/" : nextUrl;
+          const destination =
+            nextUrl.startsWith("/admin") || nextUrl === "/" ? "/my-passes" : nextUrl;
           router.push(destination);
         }
         router.refresh();

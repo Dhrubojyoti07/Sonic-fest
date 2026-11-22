@@ -120,6 +120,23 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       }
 
       setSuccessData(data.registration);
+
+      // Save pass to local history for My Booked Passes vault
+      try {
+        if (data.registration?.id) {
+          const stored = localStorage.getItem("sonic_fest_my_passes");
+          const existing = stored ? JSON.parse(stored) : [];
+          if (!existing.includes(data.registration.id)) {
+            existing.unshift(data.registration.id);
+            localStorage.setItem(
+              "sonic_fest_my_passes",
+              JSON.stringify(existing.slice(0, 20))
+            );
+          }
+        }
+      } catch {
+        // Safe localStorage ignore
+      }
     } catch (err: unknown) {
       setErrorMessage("Network error occurred. Please check your connection and retry.");
     } finally {
@@ -206,20 +223,26 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           </p>
         )}
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-3 justify-center">
           <Link href={`/tickets/${successData.id}`} target="_blank">
             <Button variant="primary" size="md" rightIcon={<ExternalLink className="w-4 h-4" />}>
               Open Digital Pass
             </Button>
           </Link>
 
+          <Link href="/my-passes">
+            <Button variant="secondary" size="md" leftIcon={<Ticket className="w-4 h-4" />}>
+              My Booked Passes
+            </Button>
+          </Link>
+
           <Button
-            variant="secondary"
+            variant="outline"
             size="md"
             onClick={() => window.print()}
             leftIcon={<Download className="w-4 h-4" />}
           >
-            Print / Save Pass
+            Print
           </Button>
 
           <Button

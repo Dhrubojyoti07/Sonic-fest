@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Menu, X, Sparkles, Shield, User, LogOut, LogIn } from "lucide-react";
+import { Menu, X, Sparkles, Shield, User, LogOut, LogIn, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { isAdminEmail } from "@/lib/utils/admin";
@@ -121,6 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navLinks = [
     { label: "Home", href: "/" },
     { label: "Events", href: "/events" },
+    { label: "My Passes", href: "/my-passes" },
     { label: "About", href: "/about" },
     { label: "Gallery", href: "/gallery" },
     { label: "Contact", href: "/contact" },
@@ -198,21 +199,37 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="hidden md:flex items-center gap-3">
             {/* Authenticated Customer Pill / Sign In Button */}
             {user ? (
-              <div className="flex items-center gap-2 bg-surface-elevated/80 border border-white/10 rounded-full px-3 py-1.5 backdrop-blur-md">
-                <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center">
-                  <User className="w-3.5 h-3.5" />
-                </div>
-                <span className="text-xs font-semibold text-white max-w-[110px] truncate" title={user.email}>
-                  {user.full_name || user.email?.split("@")[0]}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  title="Sign Out"
-                  className="p-1 text-foreground-muted hover:text-red-400 rounded-full transition-colors ml-1"
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/my-passes"
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border",
+                    pathname === "/my-passes"
+                      ? "bg-primary/20 text-primary border-primary/40 shadow-glow"
+                      : "bg-surface-elevated/80 border-white/10 text-white hover:border-primary/40"
+                  )}
+                  title="My Booked Passes"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
+                  <Ticket className="w-3.5 h-3.5 text-primary" />
+                  <span>My Passes</span>
+                </Link>
+
+                <div className="flex items-center gap-2 bg-surface-elevated/80 border border-white/10 rounded-full px-3 py-1.5 backdrop-blur-md">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-white max-w-[110px] truncate" title={user.email}>
+                    {user.full_name || user.email?.split("@")[0]}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    title="Sign Out"
+                    className="p-1 text-foreground-muted hover:text-red-400 rounded-full transition-colors ml-1"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ) : (
               <Link
