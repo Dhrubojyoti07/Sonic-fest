@@ -1,5 +1,4 @@
-import { createServerSupabaseClient } from "./server";
-import { createClient as createBrowserClient } from "./client";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import {
   DEFAULT_SITE_SETTINGS,
   FALLBACK_FEATURED_EVENT,
@@ -9,11 +8,24 @@ import {
 import { SiteSettings, Event, Artist, GalleryItem } from "@/types/database";
 
 /**
+ * Public Supabase client for static / ISR queries that do not require user session cookies.
+ * Prevents Next.js DynamicServerError when rendering static & ISR pages.
+ */
+function getPublicClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const supabaseAnonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "";
+  return createSupabaseClient(supabaseUrl, supabaseAnonKey);
+}
+
+/**
  * Fetch dynamic site configuration (with fallback defaults).
  */
 export async function getSiteSettings(): Promise<SiteSettings> {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = getPublicClient();
     const { data, error } = await supabase
       .from("site_settings")
       .select("*")
@@ -38,7 +50,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
  */
 export async function getFeaturedEvent(): Promise<Event> {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = getPublicClient();
     const { data: event, error } = await supabase
       .from("events")
       .select(
@@ -85,7 +97,7 @@ export async function getFeaturedEvent(): Promise<Event> {
  */
 export async function getAllEvents(): Promise<Event[]> {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = getPublicClient();
     const { data, error } = await supabase
       .from("events")
       .select(
@@ -131,7 +143,7 @@ export async function getAllEvents(): Promise<Event[]> {
  */
 export async function getEventBySlug(slug: string): Promise<Event | null> {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = getPublicClient();
     const { data: event, error } = await supabase
       .from("events")
       .select(
@@ -182,7 +194,7 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
  */
 export async function getAllArtists(): Promise<Artist[]> {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = getPublicClient();
     const { data, error } = await supabase
       .from("artists")
       .select("*")
@@ -203,7 +215,7 @@ export async function getAllArtists(): Promise<Artist[]> {
  */
 export async function getGalleryItems(): Promise<GalleryItem[]> {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = getPublicClient();
     const { data, error } = await supabase
       .from("gallery")
       .select("*")
