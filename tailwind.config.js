@@ -1,13 +1,11 @@
-import type { Config } from "tailwindcss";
-
-const config: Config = {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: "class",
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/(public)/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/admin/**/*.{js,ts,jsx,tsx,mdx}",
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./lib/**/*.{js,ts,jsx,tsx,mdx}",
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -38,8 +36,24 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
+        display: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
       },
       boxShadow: {
         glow: "0 0 30px rgba(255, 0, 122, 0.35)",
@@ -49,9 +63,12 @@ const config: Config = {
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "radial-festival": "radial-gradient(circle at 50% 0%, rgba(255, 0, 122, 0.18) 0%, rgba(139, 92, 246, 0.12) 35%, transparent 70%)",
-        "radial-spotlight": "radial-gradient(circle at 50% 50%, rgba(255, 0, 122, 0.15) 0%, transparent 60%)",
-        "glass-gradient": "linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)",
+        "radial-festival":
+          "radial-gradient(circle at 50% 0%, rgba(255, 0, 122, 0.18) 0%, rgba(139, 92, 246, 0.12) 35%, transparent 70%)",
+        "radial-spotlight":
+          "radial-gradient(circle at 50% 50%, rgba(255, 0, 122, 0.15) 0%, transparent 60%)",
+        "glass-gradient":
+          "linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)",
       },
       keyframes: {
         pulseSlow: {
@@ -60,21 +77,18 @@ const config: Config = {
         },
         float: {
           "0%, 100%": { transform: "translateY(0px)" },
-          "50%": { transform: "translateY(-8px)" },
+          "50%": { transform: "translateY(-10px)" },
         },
         shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
+          "100%": { transform: "translateX(100%)" },
         },
       },
       animation: {
-        "pulse-slow": "pulseSlow 6s ease-in-out infinite",
-        float: "float 4s ease-in-out infinite",
-        shimmer: "shimmer 2.5s infinite linear",
+        "pulse-slow": "pulseSlow 4s ease-in-out infinite",
+        float: "float 6s ease-in-out infinite",
+        shimmer: "shimmer 2s infinite",
       },
     },
   },
   plugins: [],
 };
-
-export default config;
