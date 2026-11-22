@@ -62,6 +62,10 @@ export interface Registration {
   email: string;
   phone: string;
   attendees: number;
+  ticket_code?: string | null;
+  status?: "confirmed" | "checked_in" | "cancelled" | string;
+  checked_in_at?: string | null;
+  checked_in_by?: string | null;
   created_at?: string;
   events?: {
     title: string;

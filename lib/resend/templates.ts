@@ -7,6 +7,9 @@ export interface EmailConfirmationProps {
   location: string;
   attendeesCount: number;
   registrationId: string;
+  ticketCode?: string;
+  qrDataUrl?: string;
+  ticketUrl?: string;
   siteName?: string;
   contactEmail?: string;
 }
@@ -20,10 +23,13 @@ export function generateRegistrationEmailHtml({
   location,
   attendeesCount,
   registrationId,
+  ticketCode,
+  qrDataUrl,
+  ticketUrl,
   siteName = "SONIC FEST",
   contactEmail = "support@sonicfest.live",
 }: EmailConfirmationProps): string {
-  const shortRef = registrationId.slice(0, 8).toUpperCase();
+  const shortRef = ticketCode || `SF-${registrationId.slice(0, 8).toUpperCase()}`;
 
   return `
 <!DOCTYPE html>
@@ -89,14 +95,14 @@ export function generateRegistrationEmailHtml({
       font-size: 15px;
       line-height: 1.6;
       color: #94a3b8;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
     .pass-card {
       background: #141124;
       border: 1px dashed rgba(255, 255, 255, 0.15);
       border-radius: 12px;
       padding: 24px;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
     .pass-title {
       font-size: 18px;
@@ -104,20 +110,15 @@ export function generateRegistrationEmailHtml({
       color: #ff007a;
       margin: 0 0 16px 0;
     }
-    .detail-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      font-size: 14px;
-    }
     .detail-label {
       color: #64748b;
       font-weight: 500;
+      font-size: 14px;
     }
     .detail-value {
       color: #f8fafc;
       font-weight: 600;
+      font-size: 14px;
       text-align: right;
     }
     .badge-code {
@@ -130,6 +131,26 @@ export function generateRegistrationEmailHtml({
       font-family: monospace;
       font-weight: 700;
       letter-spacing: 1.5px;
+    }
+    .qr-container {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      display: inline-block;
+      margin: 16px auto;
+      text-align: center;
+    }
+    .cta-button {
+      display: inline-block;
+      background: #ff007a;
+      color: #ffffff !important;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      padding: 12px 28px;
+      border-radius: 8px;
+      margin-top: 12px;
+      letter-spacing: 0.5px;
     }
     .footer {
       background: #090812;
@@ -151,15 +172,15 @@ export function generateRegistrationEmailHtml({
       <tr>
         <td class="header">
           <h1 class="brand-title">${siteName}</h1>
-          <div class="brand-sub">Official Pass Confirmation</div>
+          <div class="brand-sub">Official Festival Pass</div>
         </td>
       </tr>
       <tr>
         <td class="content">
           <h2 class="headline">You're in, ${attendeeName}!</h2>
           <p class="intro">
-            Your registration for <strong>${eventName}</strong> has been successfully confirmed. 
-            Present this email or your reference code at the registration gate to collect your RFID entry wristbands.
+            Your registration for <strong>${eventName}</strong> has been secured. 
+            Present the QR code below at the festival entrance gate for fast-track wristband check-in.
           </p>
 
           <div class="pass-card">
@@ -167,9 +188,9 @@ export function generateRegistrationEmailHtml({
             
             <table width="100%" cellpadding="6" cellspacing="0">
               <tr>
-                <td class="detail-label" width="40%">Reference Code</td>
+                <td class="detail-label" width="40%">Ticket ID</td>
                 <td class="detail-value" width="60%">
-                  <span class="badge-code">PASS-${shortRef}</span>
+                  <span class="badge-code">${shortRef}</span>
                 </td>
               </tr>
               <tr>
@@ -177,7 +198,7 @@ export function generateRegistrationEmailHtml({
                 <td class="detail-value">${attendeeName}</td>
               </tr>
               <tr>
-                <td class="detail-label">Pass Count</td>
+                <td class="detail-label">Passes Reserved</td>
                 <td class="detail-value">${attendeesCount} Guest${attendeesCount > 1 ? "s" : ""}</td>
               </tr>
               <tr>
@@ -201,11 +222,38 @@ export function generateRegistrationEmailHtml({
                 <td class="detail-value">${location}</td>
               </tr>
             </table>
+
+            ${
+              qrDataUrl
+                ? `
+            <div style="text-align: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+              <div class="qr-container">
+                <img src="${qrDataUrl}" width="160" height="160" alt="Ticket Entry QR Code" style="display: block; margin: 0 auto;" />
+              </div>
+              <div style="font-size: 11px; text-transform: uppercase; tracking: 1.5px; color: #94a3b8; margin-top: 8px;">
+                Scan for Gate Entry Verification
+              </div>
+            </div>
+            `
+                : ""
+            }
           </div>
+
+          ${
+            ticketUrl
+              ? `
+          <div style="text-align: center; margin-bottom: 24px;">
+            <a href="${ticketUrl}" class="cta-button" target="_blank">
+              View Digital Pass on Phone &rarr;
+            </a>
+          </div>
+          `
+              : ""
+          }
 
           <p class="intro" style="font-size: 13px; margin-bottom: 0;">
             Please carry a valid government-issued photo ID corresponding to the primary attendee name.
-            Gates open 1 hour prior to scheduled show time.
+            Festival gates open 1 hour prior to scheduled show time.
           </p>
         </td>
       </tr>

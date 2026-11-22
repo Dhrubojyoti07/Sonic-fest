@@ -14,6 +14,7 @@ import {
   LogOut,
   ExternalLink,
   Sparkles,
+  QrCode,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -40,6 +41,7 @@ export const AdminSidebar: React.FC = () => {
 
   const navItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+    { label: "Gate QR Scanner", href: "/admin/scanner", icon: <QrCode className="w-4 h-4" /> },
     { label: "Events", href: "/admin/events", icon: <Calendar className="w-4 h-4" /> },
     { label: "Artists Lineup", href: "/admin/artists", icon: <Mic2 className="w-4 h-4" /> },
     { label: "Registrations", href: "/admin/registrations", icon: <Users className="w-4 h-4" /> },

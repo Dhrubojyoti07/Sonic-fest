@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Event } from "@/types/database";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -16,6 +17,8 @@ import {
   Sparkles,
   ArrowRight,
   Download,
+  QrCode,
+  ExternalLink,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils/cn";
 
@@ -26,10 +29,17 @@ export interface RegistrationFormProps {
 
 interface RegistrationSuccessData {
   id: string;
+  ticketCode?: string;
   shortCode: string;
   eventName: string;
   attendeeName: string;
   attendees: number;
+  eventDate?: string;
+  eventTime?: string;
+  venue?: string;
+  location?: string;
+  qrCode?: string;
+  ticketUrl?: string;
   emailSent: boolean;
   emailWarning?: string;
 }
@@ -139,23 +149,54 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           Your reservation for <strong className="text-white">{successData.eventName}</strong> has been secured.
         </p>
 
-        {/* Pass Voucher Card */}
-        <div className="mt-6 p-6 rounded-2xl bg-black/50 border border-white/10 text-left space-y-3">
+        {/* Pass Voucher Card with QR Code */}
+        <div className="mt-6 p-6 rounded-3xl bg-surface-elevated/90 border border-white/10 shadow-2xl text-left space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
-            <span className="text-xs uppercase tracking-widest text-foreground-muted">Reference Code</span>
-            <span className="font-mono text-base font-bold text-primary tracking-wider">
-              {successData.shortCode}
-            </span>
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-foreground-muted">Festival Entry Pass</span>
+              <div className="font-mono text-base font-black text-primary tracking-wider">
+                {successData.shortCode}
+              </div>
+            </div>
+            <Badge variant="purple">VIP Entry</Badge>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-foreground-muted">Attendees:</span>
-            <span className="font-semibold text-white">{successData.attendees} Person{successData.attendees > 1 ? "s" : ""}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-foreground-muted">Email Status:</span>
-            <span className="font-semibold text-emerald-400">
-              {successData.emailSent ? "Confirmation Dispatched" : "Stored Successfully"}
-            </span>
+
+          {/* QR Code Presentation */}
+          {successData.qrCode && (
+            <div className="py-2 text-center">
+              <div className="inline-block p-3 rounded-2xl bg-white shadow-xl">
+                <img
+                  src={successData.qrCode}
+                  alt="Ticket Entry QR Code"
+                  className="w-44 h-44 object-contain mx-auto"
+                />
+              </div>
+              <div className="mt-2 text-[11px] font-bold uppercase tracking-wider text-foreground-muted flex items-center justify-center gap-1.5">
+                <QrCode className="w-3.5 h-3.5 text-primary" />
+                <span>Scan for Gate Entry Verification</span>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2 pt-2 border-t border-white/10 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-foreground-muted">Attendee:</span>
+              <span className="font-semibold text-white">{successData.attendeeName}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-foreground-muted">Passes Reserved:</span>
+              <span className="font-semibold text-white">{successData.attendees} Guest{successData.attendees > 1 ? "s" : ""}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-foreground-muted">Event:</span>
+              <span className="font-semibold text-white truncate max-w-[220px]">{successData.eventName}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-foreground-muted">Confirmation Status:</span>
+              <span className="font-semibold text-emerald-400">
+                {successData.emailSent ? "Dispatched to Email & Stored" : "Confirmed & Stored"}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -166,6 +207,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         )}
 
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href={`/tickets/${successData.id}`} target="_blank">
+            <Button variant="primary" size="md" rightIcon={<ExternalLink className="w-4 h-4" />}>
+              Open Digital Pass
+            </Button>
+          </Link>
+
           <Button
             variant="secondary"
             size="md"
@@ -189,7 +236,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               });
             }}
           >
-            Register Another Attendee
+            Register Another
           </Button>
         </div>
       </div>

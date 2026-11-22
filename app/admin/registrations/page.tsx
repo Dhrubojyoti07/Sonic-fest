@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Registration, Event } from "@/types/database";
-import { formatDate } from "@/lib/utils/cn";
+import { cn, formatDate } from "@/lib/utils/cn";
 import {
   Users,
   Search,
@@ -18,6 +18,9 @@ import {
   Phone,
   Trash2,
   AlertCircle,
+  QrCode,
+  ExternalLink,
+  Undo2,
 } from "lucide-react";
 
 export default function AdminRegistrationsPage() {
@@ -59,12 +62,14 @@ export default function AdminRegistrationsPage() {
       const matchesEvent =
         selectedEventId === "ALL" || reg.event_id === selectedEventId;
       const q = searchQuery.toLowerCase().trim();
+      const code = reg.ticket_code || `SF-${reg.id.slice(0, 8)}`;
       const matchesQuery =
         !q ||
         reg.name.toLowerCase().includes(q) ||
         reg.email.toLowerCase().includes(q) ||
         reg.phone.toLowerCase().includes(q) ||
         reg.id.toLowerCase().includes(q) ||
+        code.toLowerCase().includes(q) ||
         (reg.events?.title && reg.events.title.toLowerCase().includes(q));
 
       return matchesEvent && matchesQuery;
@@ -84,39 +89,84 @@ export default function AdminRegistrationsPage() {
       return;
     }
 
-    const headers = ["Reference ID", "Attendee Name", "Email", "Phone", "Passes", "Event", "Registered At"];
+    const headers = [
+      "Ticket Code",
+      "Attendee Name",
+      "Email",
+      "Phone",
+      "Passes",
+      "Event",
+      "Status",
+      "Checked In At",
+      "Registered At",
+    ];
     const rows = filteredRegistrations.map((r) => [
-      `PASS-${r.id.slice(0, 8).toUpperCase()}`,
+      r.ticket_code || `SF-${r.id.slice(0, 8).toUpperCase()}`,
       `"${r.name.replace(/"/g, '""')}"`,
       r.email,
       r.phone,
       r.attendees,
       `"${(r.events?.title || "Festival").replace(/"/g, '""')}"`,
+      r.status || "confirmed",
+      r.checked_in_at || "",
       r.created_at,
     ]);
 
     const csvContent =
       "data:text/csv;charset=utf-8," +
       [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `sonic-fest-registrations-${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `sonic-fest-registrations-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  const toggleCheckIn = async (regId: string, currentStatus: string) => {
+    const action = currentStatus === "checked_in" ? "undo" : "check_in";
+    try {
+      const res = await fetch("/api/tickets/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: regId, action }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRegistrations((prev) =>
+          prev.map((r) =>
+            r.id === regId
+              ? {
+                  ...r,
+                  status: data.status,
+                  checked_in_at: data.checkedInAt,
+                }
+              : r
+          )
+        );
+      } else {
+        alert(data.message || "Failed to update check-in status.");
+      }
+    } catch {
+      alert("Error contacting ticket verification service.");
+    }
+  };
+
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Delete registration for "${name}"?`)) return;
+    if (!confirm(`Are you sure you want to delete the registration for "${name}"?`)) {
+      return;
+    }
 
     try {
       const { error } = await supabase.from("registrations").delete().eq("id", id);
-      if (error) throw error;
-      await fetchRegistrations();
+      if (error) {
+        setErrorMsg("Failed to delete registration: " + error.message);
+        return;
+      }
+      setRegistrations((prev) => prev.filter((r) => r.id !== id));
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to delete registration.");
+      setErrorMsg("An unexpected error occurred while deleting.");
     }
   };
 
@@ -129,7 +179,7 @@ export default function AdminRegistrationsPage() {
 
       <div className="p-6 sm:p-8 space-y-6 max-w-7xl">
         {/* Metric Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl bg-surface-subtle border border-white/10">
             <span className="text-xs uppercase font-bold text-primary tracking-wider">
               Total Registrations
@@ -141,7 +191,7 @@ export default function AdminRegistrationsPage() {
 
           <div className="p-5 rounded-2xl bg-surface-subtle border border-white/10">
             <span className="text-xs uppercase font-bold text-accent-purple tracking-wider">
-              Total Attendees / Passes
+              Total Passes Issued
             </span>
             <div className="text-3xl font-black text-white mt-1">
               {totalAttendees}
@@ -151,9 +201,23 @@ export default function AdminRegistrationsPage() {
           <div className="p-5 rounded-2xl bg-surface-subtle border border-white/10 flex items-center justify-between">
             <div>
               <span className="text-xs uppercase font-bold text-emerald-400 tracking-wider">
+                Gate Scanner
+              </span>
+              <p className="text-xs text-foreground-muted mt-0.5">Optical turnstile check</p>
+            </div>
+            <Link href="/admin/scanner">
+              <Button variant="primary" size="sm" leftIcon={<QrCode className="w-4 h-4" />}>
+                Scanner
+              </Button>
+            </Link>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-surface-subtle border border-white/10 flex items-center justify-between">
+            <div>
+              <span className="text-xs uppercase font-bold text-cyan-400 tracking-wider">
                 Gate Export
               </span>
-              <p className="text-xs text-foreground-muted mt-0.5">Download offline CSV</p>
+              <p className="text-xs text-foreground-muted mt-0.5">Download roster CSV</p>
             </div>
             <Button
               variant="secondary"
@@ -161,7 +225,7 @@ export default function AdminRegistrationsPage() {
               onClick={handleExportCSV}
               leftIcon={<Download className="w-4 h-4" />}
             >
-              Export CSV
+              CSV
             </Button>
           </div>
         </div>
@@ -181,7 +245,7 @@ export default function AdminRegistrationsPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by attendee name, email, phone, or pass code..."
+              placeholder="Search by attendee name, email, phone, or ticket code..."
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-surface-elevated border border-white/10 text-white placeholder-foreground-muted text-xs sm:text-sm focus:outline-none focus:border-primary"
             />
           </div>
@@ -209,13 +273,13 @@ export default function AdminRegistrationsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 text-[11px] font-bold uppercase tracking-wider text-foreground-muted bg-white/5">
-                  <th className="py-4 px-6">Reference Code</th>
+                  <th className="py-4 px-6">Ticket Code</th>
                   <th className="py-4 px-4">Attendee</th>
                   <th className="py-4 px-4">Contact</th>
                   <th className="py-4 px-4">Event</th>
                   <th className="py-4 px-4 text-center">Passes</th>
-                  <th className="py-4 px-4">Date</th>
-                  <th className="py-4 px-6 text-right">Actions</th>
+                  <th className="py-4 px-4">Status</th>
+                  <th className="py-4 px-6 text-right">Gate Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs text-slate-300">
@@ -226,38 +290,73 @@ export default function AdminRegistrationsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredRegistrations.map((reg) => (
-                    <tr key={reg.id} className="hover:bg-white/5 transition-colors">
-                      <td className="py-4 px-6 font-mono font-bold text-primary">
-                        PASS-{reg.id.slice(0, 8).toUpperCase()}
-                      </td>
-                      <td className="py-4 px-4 font-bold text-white">
-                        {reg.name}
-                      </td>
-                      <td className="py-4 px-4 space-y-0.5">
-                        <div className="text-slate-300">{reg.email}</div>
-                        <div className="text-[11px] text-foreground-muted">{reg.phone}</div>
-                      </td>
-                      <td className="py-4 px-4 text-slate-200">
-                        {reg.events?.title || "Official Festival Pass"}
-                      </td>
-                      <td className="py-4 px-4 text-center font-bold text-base text-white">
-                        {reg.attendees}
-                      </td>
-                      <td className="py-4 px-4 text-foreground-muted whitespace-nowrap">
-                        {formatDate(reg.created_at)}
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <button
-                          onClick={() => handleDelete(reg.id, reg.name)}
-                          className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/20 transition-colors"
-                          title="Delete Registration"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  filteredRegistrations.map((reg) => {
+                    const ticketCode =
+                      reg.ticket_code || `SF-${reg.id.slice(0, 8).toUpperCase()}`;
+                    const isCheckedIn =
+                      reg.status === "checked_in" || !!reg.checked_in_at;
+
+                    return (
+                      <tr key={reg.id} className="hover:bg-white/5 transition-colors">
+                        <td className="py-4 px-6">
+                          <Link
+                            href={`/tickets/${reg.id}`}
+                            target="_blank"
+                            className="font-mono font-bold text-primary hover:underline inline-flex items-center gap-1"
+                            title="View Digital Pass"
+                          >
+                            <span>{ticketCode}</span>
+                            <ExternalLink className="w-3 h-3 opacity-60" />
+                          </Link>
+                        </td>
+                        <td className="py-4 px-4 font-bold text-white">
+                          {reg.name}
+                        </td>
+                        <td className="py-4 px-4 space-y-0.5">
+                          <div className="text-slate-300">{reg.email}</div>
+                          <div className="text-[11px] text-foreground-muted">{reg.phone}</div>
+                        </td>
+                        <td className="py-4 px-4 text-slate-200">
+                          {reg.events?.title || "Official Festival Pass"}
+                        </td>
+                        <td className="py-4 px-4 text-center font-bold text-base text-white">
+                          {reg.attendees}
+                        </td>
+                        <td className="py-4 px-4">
+                          {isCheckedIn ? (
+                            <Badge variant="warning" className="text-[10px]">
+                              Checked In
+                            </Badge>
+                          ) : (
+                            <Badge variant="success" className="text-[10px]">
+                              Confirmed
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-4 px-6 text-right whitespace-nowrap space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleCheckIn(reg.id, isCheckedIn ? "checked_in" : "confirmed")}
+                            className={cn(
+                              "px-2.5 py-1 rounded-lg text-xs font-bold transition-all",
+                              isCheckedIn
+                                ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+                                : "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                            )}
+                          >
+                            {isCheckedIn ? "Undo" : "Check In"}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(reg.id, reg.name)}
+                            className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/20 transition-colors inline-block"
+                            title="Delete Registration"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

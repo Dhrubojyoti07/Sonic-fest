@@ -7,6 +7,7 @@ import { formatDate, formatTime } from "@/lib/utils/cn";
 import { getSiteSettings } from "@/lib/supabase/queries";
 import { FALLBACK_FEATURED_EVENT } from "@/lib/constants/defaults";
 import crypto from "crypto";
+import QRCode from "qrcode";
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     let registrationEnabled = true;
 
     try {
-      const { data: dbEvent, error: eventError } = await supabase
+      const { data: dbEvent } = await supabase
         .from("events")
         .select("id, title, date, start_time, venue, location, registration_enabled")
         .eq("id", eventId)
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Duplicate check within recent registrations
+    // 3. Duplicate check within recent registrations (5 minute window)
     try {
       const { data: existingReg } = await supabase
         .from("registrations")
@@ -99,11 +100,13 @@ export async function POST(req: NextRequest) {
       // Ignore if table not yet migrated
     }
 
-    // 4. Insert registration into Supabase (with graceful fallback if table not yet migrated)
+    // 4. Create unique ticket ID and code
     let registrationId = crypto.randomUUID();
+    let ticketCode = `SF-${registrationId.slice(0, 8).toUpperCase()}`;
     let dbStored = false;
 
     try {
+      // Try inserting with ticket_code and status
       const { data: registration, error: insertError } = await supabase
         .from("registrations")
         .insert({
@@ -112,21 +115,60 @@ export async function POST(req: NextRequest) {
           email: email.trim().toLowerCase(),
           phone: phone.trim(),
           attendees: Number(attendees),
+          ticket_code: ticketCode,
+          status: "confirmed",
         })
-        .select("id, created_at")
+        .select("id, ticket_code, created_at")
         .single();
 
       if (registration?.id) {
         registrationId = registration.id;
+        if (registration.ticket_code) ticketCode = registration.ticket_code;
         dbStored = true;
       } else if (insertError) {
-        console.warn("Supabase registrations insert warning (tables may need migration):", insertError.message);
+        // Fallback in case migration 002 hasn't been executed yet in Supabase SQL editor
+        const fallback = await supabase
+          .from("registrations")
+          .insert({
+            event_id: eventId,
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            phone: phone.trim(),
+            attendees: Number(attendees),
+          })
+          .select("id, created_at")
+          .single();
+
+        if (fallback.data?.id) {
+          registrationId = fallback.data.id;
+          ticketCode = `SF-${registrationId.slice(0, 8).toUpperCase()}`;
+          dbStored = true;
+        }
       }
     } catch (insertErr) {
       console.warn("Database insert catch:", insertErr);
     }
 
-    // 5. Send dynamic transactional email via Resend
+    // 5. Generate QR Code containing the secure ticket URL
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin || "http://localhost:3000";
+    const ticketUrl = `${siteUrl}/tickets/${registrationId}`;
+
+    let qrDataUrl = "";
+    try {
+      qrDataUrl = await QRCode.toDataURL(ticketUrl, {
+        width: 320,
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#ffffff",
+        },
+      });
+    } catch (qrErr) {
+      console.warn("QR generation warning:", qrErr);
+    }
+
+    // 6. Send dynamic transactional email via Resend with embedded QR code
     let emailSent = false;
     let emailErrorMsg: string | undefined = undefined;
 
@@ -142,6 +184,9 @@ export async function POST(req: NextRequest) {
           location: eventLocation,
           attendeesCount: Number(attendees),
           registrationId,
+          ticketCode,
+          qrDataUrl,
+          ticketUrl,
           siteName: settings.site_name,
           contactEmail: settings.contact_email,
         });
@@ -149,7 +194,7 @@ export async function POST(req: NextRequest) {
         const emailResult = await resend.emails.send({
           from: DEFAULT_FROM_EMAIL,
           to: [email.trim().toLowerCase()],
-          subject: `Pass Confirmed: ${eventTitle} - Ref #${registrationId.slice(0, 8).toUpperCase()}`,
+          subject: `Pass Confirmed: ${eventTitle} — Ref #${ticketCode}`,
           html,
         });
 
@@ -170,10 +215,17 @@ export async function POST(req: NextRequest) {
       message: "Registration completed successfully!",
       registration: {
         id: registrationId,
-        shortCode: `PASS-${registrationId.slice(0, 8).toUpperCase()}`,
+        ticketCode,
+        shortCode: ticketCode,
         eventName: eventTitle,
         attendeeName: name.trim(),
         attendees: Number(attendees),
+        eventDate: formatDate(eventDate),
+        eventTime: formatTime(eventStartTime),
+        venue: eventVenue,
+        location: eventLocation,
+        qrCode: qrDataUrl,
+        ticketUrl,
         emailSent,
         emailWarning: emailErrorMsg,
         dbStored,
