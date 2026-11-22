@@ -34,7 +34,7 @@ export const AdminSidebar: React.FC = () => {
     } catch (e) {
       console.warn("Sign out err:", e);
     }
-    router.push("/admin/login");
+    router.push("/login");
     router.refresh();
   };
 

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAdminEmail } from "@/lib/utils/admin";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -54,47 +55,49 @@ export async function updateSession(request: NextRequest) {
       const { data } = await supabase.auth.getUser();
       user = data?.user || null;
     } catch {
-      // Safe fallback if network error or unreachable
       user = null;
     }
 
     const isAdminRoute = pathname.startsWith("/admin");
-    const isAdminAuthRoute =
-      pathname === "/admin/login" || pathname === "/admin/reset-password";
-    const isCustomerAuthRoute =
-      pathname === "/login" || pathname === "/signup";
+    const isCustomerAuthRoute = pathname === "/login" || pathname === "/signup";
 
-    const adminDemoCookie =
-      request.cookies.get("sonic_fest_admin_demo")?.value === "true";
     const customerDemoCookie =
       request.cookies.get("sonic_fest_customer_demo")?.value === "true";
 
-    const isAuthenticated = !!user || customerDemoCookie || adminDemoCookie;
-    const isAdminAuthenticated = !!user || adminDemoCookie;
+    const isAuthenticated = !!user || customerDemoCookie;
+    const isAuthorizedAdmin = !!user && isAdminEmail(user.email);
 
     // 1. ADMIN ROUTE PROTECTION
     if (isAdminRoute) {
-      if (!isAdminAuthRoute && !isAdminAuthenticated) {
+      // Direct alias: if someone visits /admin/login, send to /login
+      if (pathname === "/admin/login") {
         const url = request.nextUrl.clone();
-        url.pathname = "/admin/login";
+        url.pathname = "/login";
+        return NextResponse.redirect(url);
+      }
+
+      // If not logged in at all, redirect to /login
+      if (!user) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
         url.searchParams.set("next", pathname);
         return NextResponse.redirect(url);
       }
 
-      if (isAdminAuthRoute && isAdminAuthenticated) {
-        const nextParam =
-          request.nextUrl.searchParams.get("next") || "/admin/dashboard";
+      // If logged in but NOT the allowed admin email, strictly deny admin access
+      if (!isAuthorizedAdmin) {
         const url = request.nextUrl.clone();
-        url.pathname = nextParam;
+        url.pathname = "/";
         url.search = "";
         return NextResponse.redirect(url);
       }
 
+      // Authorized admin user visiting an admin route
       return supabaseResponse;
     }
 
-    // 2. COMPULSORY CUSTOMER LOGIN ROUTE PROTECTION
-    // If visitor is not authenticated and trying to access any public site page (Home, Events, About, Gallery, Contact, Register)
+    // 2. COMPULSORY LOGIN ROUTE PROTECTION
+    // If visitor is unauthenticated and attempting to access any customer route
     if (!isAuthenticated && !isCustomerAuthRoute) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
@@ -105,12 +108,19 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // 3. IF AUTHENTICATED AND VISITING CUSTOMER LOGIN / SIGNUP, REDIRECT TO HOME OR NEXT
+    // 3. IF AUTHENTICATED AND VISITING LOGIN / SIGNUP, DIRECT TO RESPECTIVE DASHBOARD
     if (isAuthenticated && isCustomerAuthRoute) {
-      const nextParam = request.nextUrl.searchParams.get("next") || "/";
       const url = request.nextUrl.clone();
-      url.pathname = nextParam.startsWith("/") ? nextParam : "/";
       url.search = "";
+
+      // If admin logs in, automatically direct them to admin dashboard
+      if (isAuthorizedAdmin) {
+        url.pathname = "/admin/dashboard";
+      } else {
+        const nextParam = request.nextUrl.searchParams.get("next") || "/";
+        url.pathname = nextParam.startsWith("/") ? nextParam : "/";
+      }
+
       return NextResponse.redirect(url);
     }
   } catch (error) {

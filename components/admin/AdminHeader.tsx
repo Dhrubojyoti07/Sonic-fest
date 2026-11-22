@@ -11,7 +11,7 @@ export interface AdminHeaderProps {
 }
 
 export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, subtitle }) => {
-  const [adminEmail, setAdminEmail] = useState<string>("admin@sonicfest.live");
+  const [adminEmail, setAdminEmail] = useState<string>("dhrubojyotipatra2007@gmail.com");
   const [adminName, setAdminName] = useState<string | null>(null);
   const supabase = createClient();
 

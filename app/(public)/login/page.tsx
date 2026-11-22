@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
+import { isAdminEmail } from "@/lib/utils/admin";
 
 // Google 4-Color SVG Icon
 function GoogleIcon() {
@@ -153,7 +154,14 @@ function CustomerLoginForm() {
         } else {
           localStorage.removeItem("sonic_fest_customer_email");
         }
-        router.push(nextUrl);
+
+        const userEmail = data.session.user?.email || email.trim();
+        if (isAdminEmail(userEmail)) {
+          router.push("/admin/dashboard");
+        } else {
+          const destination = nextUrl.startsWith("/admin") ? "/" : nextUrl;
+          router.push(destination);
+        }
         router.refresh();
       }
     } catch {
@@ -200,7 +208,13 @@ function CustomerLoginForm() {
       }
 
       if (data.session) {
-        router.push(nextUrl);
+        const userEmail = data.session.user?.email || email.trim();
+        if (isAdminEmail(userEmail)) {
+          router.push("/admin/dashboard");
+        } else {
+          const destination = nextUrl.startsWith("/admin") ? "/" : nextUrl;
+          router.push(destination);
+        }
         router.refresh();
       } else {
         setSignupSuccess(true);
@@ -569,7 +583,7 @@ function CustomerLoginForm() {
           )}
 
           {/* DEMO / GUEST ACCESS BUTTON */}
-          <div className="mt-6 pt-5 border-t border-white/10 flex flex-col items-center gap-3">
+          <div className="mt-6 pt-5 border-t border-white/10 flex flex-col items-center">
             <button
               type="button"
               onClick={handleGuestDemoAccess}
@@ -578,15 +592,6 @@ function CustomerLoginForm() {
               <Compass className="w-3.5 h-3.5" />
               <span>Explore as Guest (Preview Access)</span>
             </button>
-            <div className="text-[11px] text-foreground-dark text-center">
-              Are you an event organizer?{" "}
-              <Link
-                href="/admin/login"
-                className="text-foreground-muted hover:text-primary transition-colors underline"
-              >
-                Admin Suite
-              </Link>
-            </div>
           </div>
         </div>
       </div>

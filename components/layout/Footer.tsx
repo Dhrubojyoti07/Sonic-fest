@@ -141,11 +141,6 @@ export const Footer: React.FC<FooterProps> = ({ settings }) => {
                   Safety & Guidelines
                 </Link>
               </li>
-              <li>
-                <Link href="/admin/login" className="hover:text-accent-purple transition-colors">
-                  Admin Login
-                </Link>
-              </li>
             </ul>
           </div>
 

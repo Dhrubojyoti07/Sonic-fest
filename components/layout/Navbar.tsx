@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Menu, X, Sparkles, Shield, User, LogOut, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
+import { isAdminEmail } from "@/lib/utils/admin";
 
 export interface NavbarProps {
   siteName?: string;
@@ -129,6 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const nameParts = siteName.split(" ");
   const firstWord = nameParts[0] || "SONIC";
   const restWord = nameParts.slice(1).join(" ") || "FEST";
+  const isAdmin = isAdminEmail(user?.email);
 
   return (
     <header
@@ -222,13 +224,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               </Link>
             )}
 
-            <Link
-              href="/admin/dashboard"
-              title="Admin Portal"
-              className="p-2 text-foreground-muted hover:text-accent-purple transition-colors rounded-full hover:bg-white/5"
-            >
-              <Shield className="w-4 h-4" />
-            </Link>
+            {isAdmin && (
+              <Link
+                href="/admin/dashboard"
+                title="Admin Portal"
+                className="p-2 text-primary hover:text-white transition-colors rounded-full hover:bg-primary/10"
+              >
+                <Shield className="w-4 h-4" />
+              </Link>
+            )}
 
             <Link href={ctaDestination}>
               <Button
@@ -317,12 +321,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {ctaText}
                 </Button>
               </Link>
-              <Link
-                href="/admin/login"
-                className="text-center text-xs text-foreground-muted hover:text-accent-purple py-2"
-              >
-                Admin Management Portal
-              </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin/dashboard"
+                  className="text-center text-xs text-primary hover:text-white py-2"
+                >
+                  Admin Management Portal
+                </Link>
+              )}
             </div>
           </nav>
         </div>

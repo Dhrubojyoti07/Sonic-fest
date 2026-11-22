@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { isAdminEmail } from "@/lib/utils/admin";
 
 export default function AdminLayout({
   children,
@@ -30,14 +31,14 @@ export default function AdminLayout({
           data: { session },
         } = await supabase.auth.getSession();
 
-        // Check if demo bypass mode is enabled
-        const isDemoMode =
-          typeof window !== "undefined" &&
-          (localStorage.getItem("sonic_fest_admin_demo") === "true" ||
-            document.cookie.includes("sonic_fest_admin_demo=true"));
+        if (!session) {
+          router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+          return;
+        }
 
-        if (!session && !isDemoMode) {
-          router.replace(`/admin/login?next=${encodeURIComponent(pathname)}`);
+        // Strict Check: Only dhrubojyotipatra2007@gmail.com has admin access
+        if (!isAdminEmail(session.user?.email)) {
+          router.replace("/");
           return;
         }
       } catch (err) {
@@ -54,7 +55,9 @@ export default function AdminLayout({
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" && !isAuthPage) {
-        router.replace("/admin/login");
+        router.replace("/login");
+      } else if (session?.user && !isAdminEmail(session.user.email)) {
+        router.replace("/");
       }
     });
 
@@ -73,7 +76,7 @@ export default function AdminLayout({
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <span className="text-xs font-bold uppercase tracking-widest text-foreground-muted">
-            Verifying Admin Credentials...
+            Verifying Admin Authorization...
           </span>
         </div>
       </div>
@@ -81,11 +84,16 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen flex bg-[#08070e] text-foreground">
+    <div className="min-h-screen bg-[#08070e] flex">
+      {/* Admin Sidebar Navigation */}
       <AdminSidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {children}
-      </div>
+
+      {/* Main Admin Content */}
+      <main className="flex-1 min-w-0 overflow-y-auto">
+        <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
