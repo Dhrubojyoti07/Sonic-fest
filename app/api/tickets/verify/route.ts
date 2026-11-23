@@ -71,6 +71,43 @@ export async function GET(req: NextRequest) {
 
     // DUPLICATE ENTRY CHECK:
     if (isCheckedIn) {
+      // Grace window: If this check-in happened less than 8 seconds ago (e.g. camera double-frame or retry),
+      // treat it as the current active scan approval rather than an alarming duplicate!
+      const checkedInTime = registration.checked_in_at
+        ? new Date(registration.checked_in_at).getTime()
+        : 0;
+      const isRecentScan = checkedInTime > 0 && Date.now() - checkedInTime < 8000;
+
+      if (isRecentScan) {
+        return NextResponse.json({
+          success: true,
+          valid: true,
+          alreadyCheckedIn: false,
+          justCheckedIn: true,
+          message: `ADMISSION APPROVED: Ticket verified & checked in! Issue ${
+            registration.attendees
+          } wristband${registration.attendees > 1 ? "s" : ""} for ${registration.name}.`,
+          checkedInAt: registration.checked_in_at,
+          checkedInBy: registration.checked_in_by || "Gate Scanner",
+          registration: {
+            id: registration.id,
+            ticketCode,
+            name: registration.name,
+            email: registration.email,
+            phone: registration.phone,
+            attendees: registration.attendees,
+            status: "checked_in",
+            createdAt: registration.created_at,
+          },
+          event: {
+            title: registration.events?.title || "Sonic Fest 2025",
+            date: registration.events?.date,
+            venue: registration.events?.venue || "NeoSphere Arena",
+            location: registration.events?.location || "Mumbai",
+          },
+        });
+      }
+
       const timeStr = registration.checked_in_at
         ? new Date(registration.checked_in_at).toLocaleTimeString([], {
             hour: "2-digit",
