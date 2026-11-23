@@ -53,11 +53,6 @@ export async function GET(req: NextRequest) {
       // Safe fallback
     }
 
-    // Demo check for preview mode
-    if (!registration && (cleanCode.startsWith("demo") || cleanCode === "SF-DEMO2025")) {
-      registration = checkInService.getDemoRegistration();
-    }
-
     if (!registration) {
       return NextResponse.json(
         {
@@ -119,20 +114,18 @@ export async function GET(req: NextRequest) {
       adminIdentifier
     );
 
-    // Synchronize status update to Supabase if table is migrated
-    if (registration.id !== "demo-ticket-001") {
-      try {
-        await supabase
-          .from("registrations")
-          .update({
-            status: "checked_in",
-            checked_in_at: checkInRecord.checkedInAt,
-            checked_in_by: adminIdentifier,
-          })
-          .eq("id", registration.id);
-      } catch (updateErr) {
-        console.warn("Auto check-in database update error:", updateErr);
-      }
+    // Synchronize status update to Supabase
+    try {
+      await supabase
+        .from("registrations")
+        .update({
+          status: "checked_in",
+          checked_in_at: checkInRecord.checkedInAt,
+          checked_in_by: adminIdentifier,
+        })
+        .eq("id", registration.id);
+    } catch (updateErr) {
+      console.warn("Auto check-in database update error:", updateErr);
     }
 
     return NextResponse.json({
@@ -187,33 +180,29 @@ export async function POST(req: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const isDemoAdmin = req.cookies.get("sonic_fest_admin_demo")?.value === "true";
-
-    if (!isDemoAdmin && id !== "demo-ticket-001" && (!user || !isAdminEmail(user?.email))) {
+    if (!user || !isAdminEmail(user?.email)) {
       return NextResponse.json(
         { success: false, error: "UNAUTHORIZED", message: "Only administrators can perform ticket check-ins." },
         { status: 403 }
       );
     }
 
-    const adminIdentifier = user?.email || "dhrubojyotipatra2007@gmail.com";
+    const adminIdentifier = user.email!;
 
     // Action: UNDO CHECK IN
     if (action === "undo") {
-      const record = checkInService.undoCheckIn(id);
-      if (id !== "demo-ticket-001") {
-        try {
-          await supabase
-            .from("registrations")
-            .update({
-              status: "confirmed",
-              checked_in_at: null,
-              checked_in_by: null,
-            })
-            .eq("id", id);
-        } catch (updateErr) {
-          console.warn("Undo check-in database update error:", updateErr);
-        }
+      checkInService.undoCheckIn(id);
+      try {
+        await supabase
+          .from("registrations")
+          .update({
+            status: "confirmed",
+            checked_in_at: null,
+            checked_in_by: null,
+          })
+          .eq("id", id);
+      } catch (updateErr) {
+        console.warn("Undo check-in database update error:", updateErr);
       }
 
       return NextResponse.json({
@@ -241,19 +230,17 @@ export async function POST(req: NextRequest) {
     }
 
     const record = checkInService.recordCheckIn(id, undefined, adminIdentifier);
-    if (id !== "demo-ticket-001") {
-      try {
-        await supabase
-          .from("registrations")
-          .update({
-            status: "checked_in",
-            checked_in_at: record.checkedInAt,
-            checked_in_by: adminIdentifier,
-          })
-          .eq("id", id);
-      } catch (updateErr) {
-        console.warn("Check-in database update error:", updateErr);
-      }
+    try {
+      await supabase
+        .from("registrations")
+        .update({
+          status: "checked_in",
+          checked_in_at: record.checkedInAt,
+          checked_in_by: adminIdentifier,
+        })
+        .eq("id", id);
+    } catch (updateErr) {
+      console.warn("Check-in database update error:", updateErr);
     }
 
     return NextResponse.json({

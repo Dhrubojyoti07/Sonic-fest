@@ -3,18 +3,16 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/utils/admin";
 import { checkInService } from "@/lib/services/checkInService";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createServerSupabaseClient();
 
-    // Verify admin access
+    // Verify admin access (strictly restricted to dhrubojyotipatra2007@gmail.com)
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const isDemoAdmin = req.cookies.get("sonic_fest_admin_demo")?.value === "true";
-
-    if (!isDemoAdmin && (!user || !isAdminEmail(user?.email))) {
+    if (!user || !isAdminEmail(user?.email)) {
       return NextResponse.json(
         { success: false, error: "UNAUTHORIZED", message: "Only administrators can access registration rosters." },
         { status: 403 }
@@ -37,13 +35,9 @@ export async function GET(req: NextRequest) {
     }
 
     // 2. Enrich all registrations with live check-in state
-    const enrichedList = dbRegistrations.map((r) => checkInService.enrichRegistration(r));
+    const allRegistrations = dbRegistrations.map((r) => checkInService.enrichRegistration(r));
 
-    // 3. Inject demo ticket at top for turnstile testing
-    const demoReg = checkInService.getDemoRegistration();
-    const allRegistrations = [demoReg, ...enrichedList.filter((r) => r.id !== demoReg.id)];
-
-    // 4. Calculate live metrics
+    // 3. Calculate live metrics
     const totalRegistrations = allRegistrations.length;
     const totalPasses = allRegistrations.reduce(
       (sum, r) => sum + (Number(r.attendees) || 1),
@@ -94,18 +88,17 @@ export async function POST(req: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const isDemoAdmin = req.cookies.get("sonic_fest_admin_demo")?.value === "true";
-    const adminIdentifier = user?.email || "dhrubojyotipatra2007@gmail.com";
-
-    if (!isDemoAdmin && id !== "demo-ticket-001" && (!user || !isAdminEmail(user?.email))) {
+    if (!user || !isAdminEmail(user?.email)) {
       return NextResponse.json(
         { success: false, error: "UNAUTHORIZED", message: "Only administrators can update check-in status." },
         { status: 403 }
       );
     }
 
+    const adminIdentifier = user.email!;
+
     if (action === "undo") {
-      const record = checkInService.undoCheckIn(id);
+      checkInService.undoCheckIn(id);
       try {
         await supabase
           .from("registrations")

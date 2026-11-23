@@ -96,11 +96,6 @@ export async function GET(req: NextRequest) {
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin || "http://localhost:3000";
 
-    // Injects demo pass if requested or in demo list
-    if (requestedCode === "SF-DEMO2025" || requestedCode === "demo-ticket-001" || requestedIds.includes("demo-ticket-001")) {
-      registrationsMap.set("demo-ticket-001", checkInService.getDemoRegistration());
-    }
-
     const registrationsList = Array.from(registrationsMap.values());
 
     // Generate QR codes and format output

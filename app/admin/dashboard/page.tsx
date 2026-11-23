@@ -266,7 +266,7 @@ export default function AdminDashboardPage() {
                 {recentRegistrations.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-foreground-muted">
-                      No registrations recorded yet. When visitors book passes or when demo credentials are used, they appear here.
+                      No registrations recorded yet. When attendees register for festival passes, they will appear here in real-time.
                     </td>
                   </tr>
                 ) : (

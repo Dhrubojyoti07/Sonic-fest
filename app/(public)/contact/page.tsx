@@ -85,10 +85,10 @@ export default function ContactPage() {
                       Official Inquiries
                     </span>
                     <a
-                      href="mailto:contact@sonicfest.live"
+                      href="mailto:dhrubojyotipatra2007@gmail.com"
                       className="font-semibold text-white hover:text-primary transition-colors"
                     >
-                      contact@sonicfest.live
+                      dhrubojyotipatra2007@gmail.com
                     </a>
                   </div>
                 </div>
@@ -102,10 +102,10 @@ export default function ContactPage() {
                       Support Hotline
                     </span>
                     <a
-                      href="tel:+9102289003450"
+                      href="tel:+9830033351"
                       className="font-semibold text-white hover:text-accent-purple transition-colors"
                     >
-                      +91 (022) 8900-3450
+                      +91 9830033351
                     </a>
                   </div>
                 </div>

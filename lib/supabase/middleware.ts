@@ -61,10 +61,7 @@ export async function updateSession(request: NextRequest) {
     const isAdminRoute = pathname.startsWith("/admin");
     const isCustomerAuthRoute = pathname === "/login" || pathname === "/signup";
 
-    const customerDemoCookie =
-      request.cookies.get("sonic_fest_customer_demo")?.value === "true";
-
-    const isAuthenticated = !!user || customerDemoCookie;
+    const isAuthenticated = !!user;
     const isAuthorizedAdmin = !!user && isAdminEmail(user.email);
 
     // 1. ADMIN ROUTE PROTECTION

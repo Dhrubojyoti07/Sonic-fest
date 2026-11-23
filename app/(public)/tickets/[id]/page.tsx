@@ -63,13 +63,8 @@ export default async function TicketPassPage({ params }: TicketPageProps) {
     // Graceful handling
   }
 
-  // Fallback demo ticket if id is a preview reference
   if (!registration) {
-    if (id.startsWith("demo") || id.startsWith("SF-")) {
-      registration = checkInService.getDemoRegistration();
-    } else {
-      notFound();
-    }
+    notFound();
   }
 
   registration = checkInService.enrichRegistration(registration);

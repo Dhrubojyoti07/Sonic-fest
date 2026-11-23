@@ -25,9 +25,5 @@ async function handleSignOut(request: Request) {
     status: 302,
   });
 
-  // Clear demo cookies
-  response.cookies.delete("sonic_fest_admin_demo");
-  response.cookies.delete("sonic_fest_customer_demo");
-
   return response;
 }

@@ -25,7 +25,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState<{ email?: string; full_name?: string } | null>(null);
-  const [isDemoUser, setIsDemoUser] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -50,16 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             full_name: data.user.user_metadata?.full_name || data.user.email?.split("@")[0],
           });
         } else {
-          // Check demo cookies
-          const hasCustomerDemo = document.cookie.includes("sonic_fest_customer_demo=true");
-          const hasAdminDemo = document.cookie.includes("sonic_fest_admin_demo=true");
-          if (hasCustomerDemo || hasAdminDemo) {
-            setIsDemoUser(true);
-            setUser({ email: "guest@sonicfest.live", full_name: "Guest Explorer" });
-          } else {
-            setUser(null);
-            setIsDemoUser(false);
-          }
+          setUser(null);
         }
       } catch {
         setUser(null);
@@ -77,18 +67,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           full_name:
             session.user.user_metadata?.full_name || session.user.email?.split("@")[0],
         });
-        setIsDemoUser(false);
       } else {
-        const hasDemo =
-          document.cookie.includes("sonic_fest_customer_demo=true") ||
-          document.cookie.includes("sonic_fest_admin_demo=true");
-        if (hasDemo) {
-          setIsDemoUser(true);
-          setUser({ email: "guest@sonicfest.live", full_name: "Guest Explorer" });
-        } else {
-          setUser(null);
-          setIsDemoUser(false);
-        }
+        setUser(null);
       }
     });
 
@@ -102,10 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
-      document.cookie = "sonic_fest_customer_demo=; path=/; max-age=0";
-      document.cookie = "sonic_fest_admin_demo=; path=/; max-age=0";
       setUser(null);
-      setIsDemoUser(false);
       router.push("/login");
       router.refresh();
     } catch {

@@ -681,20 +681,6 @@ export default function AdminScannerPage() {
                 Verify & Check In
               </Button>
             </form>
-
-            <div className="pt-2 flex items-center justify-between text-xs">
-              <span className="text-foreground-dark">Test with preview credential:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setManualCode("SF-DEMO2025");
-                  verifyTicket("SF-DEMO2025");
-                }}
-                className="text-primary hover:underline font-mono font-bold"
-              >
-                Test Demo Pass (SF-DEMO2025)
-              </button>
-            </div>
           </div>
         </div>
 

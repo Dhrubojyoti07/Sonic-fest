@@ -197,11 +197,6 @@ export default function AdminRegistrationsPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (id === "demo-ticket-001") {
-      alert("Alex Rivera is the system preview credential and cannot be deleted.");
-      return;
-    }
-
     if (!confirm(`Are you sure you want to delete the registration for "${name}"?`)) {
       return;
     }
@@ -291,7 +286,7 @@ export default function AdminRegistrationsPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by attendee name, email, phone, or ticket code (e.g. SF-DEMO2025)..."
+              placeholder="Search by attendee name, email, phone, or ticket code (e.g. SF-A8F29C)..."
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-surface-elevated border border-white/10 text-white placeholder-foreground-muted text-xs sm:text-sm focus:outline-none focus:border-primary"
             />
           </div>
@@ -422,11 +417,6 @@ export default function AdminRegistrationsPage() {
                               <span>{ticketCode}</span>
                               <ExternalLink className="w-3 h-3 opacity-60" />
                             </Link>
-                            {reg.is_demo && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white/10 text-white/70 uppercase">
-                                Demo
-                              </span>
-                            )}
                           </div>
                         </td>
                         <td className="py-4 px-4 font-bold text-white">
@@ -488,15 +478,13 @@ export default function AdminRegistrationsPage() {
                               </>
                             )}
                           </button>
-                          {!reg.is_demo && (
-                            <button
-                              onClick={() => handleDelete(reg.id, reg.name)}
-                              className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/20 transition-colors inline-block"
-                              title="Delete Registration"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleDelete(reg.id, reg.name)}
+                            className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/20 transition-colors inline-block"
+                            title="Delete Registration"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </td>
                       </tr>
                     );

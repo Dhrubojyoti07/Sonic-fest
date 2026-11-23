@@ -229,13 +229,6 @@ function AdminLoginForm() {
     }
   };
 
-  // Fast demo mode bypass for local testing
-  const handleDemoAccess = () => {
-    document.cookie = "sonic_fest_admin_demo=true; path=/; max-age=86400";
-    localStorage.setItem("sonic_fest_admin_demo", "true");
-    router.push(nextUrl);
-  };
-
   return (
     <div className="min-h-screen bg-[#08070e] flex items-center justify-center p-4 relative overflow-hidden">
       {/* Ambient background glows */}
@@ -547,19 +540,6 @@ function AdminLoginForm() {
               </Button>
             </form>
           )}
-
-          {/* Quick Demo Access Button */}
-          <div className="mt-6 pt-4 border-t border-white/5">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={handleDemoAccess}
-              className="w-full text-xs text-foreground-muted hover:text-white"
-            >
-              ⚡ Quick Preview Mode (Bypass Auth for Evaluation)
-            </Button>
-          </div>
         </div>
       </div>
 

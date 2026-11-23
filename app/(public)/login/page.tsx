@@ -18,7 +18,6 @@ import {
   Ticket,
   Send,
   X,
-  Compass,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
@@ -254,14 +253,6 @@ function CustomerLoginForm() {
     } finally {
       setForgotLoading(false);
     }
-  };
-
-  // Guest / Demo Access Mode (Sets session cookie for instant evaluation)
-  const handleGuestDemoAccess = () => {
-    document.cookie = "sonic_fest_customer_demo=true; path=/; max-age=86400";
-    localStorage.setItem("sonic_fest_customer_demo", "true");
-    router.push(nextUrl);
-    router.refresh();
   };
 
   return (
@@ -583,18 +574,6 @@ function CustomerLoginForm() {
               </div>
             </div>
           )}
-
-          {/* DEMO / GUEST ACCESS BUTTON */}
-          <div className="mt-6 pt-5 border-t border-white/10 flex flex-col items-center">
-            <button
-              type="button"
-              onClick={handleGuestDemoAccess}
-              className="text-xs text-accent-purple hover:text-white transition-colors flex items-center gap-1.5 font-semibold py-1 px-3 rounded-lg hover:bg-accent-purple/10"
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>Explore as Guest (Preview Access)</span>
-            </button>
-          </div>
         </div>
       </div>
 

@@ -26,10 +26,6 @@ export const AdminSidebar: React.FC = () => {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
-      // Clear demo flag
-      localStorage.removeItem("sonic_fest_admin_demo");
-      document.cookie = "sonic_fest_admin_demo=; path=/; max-age=0";
-
       // Call server signout route to clear server cookies
       await fetch("/api/auth/signout", { method: "POST" });
     } catch (e) {
