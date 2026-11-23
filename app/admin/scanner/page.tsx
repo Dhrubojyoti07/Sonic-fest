@@ -25,6 +25,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import jsQR from "jsqr";
 
 interface VerificationResult {
   valid: boolean;
@@ -68,11 +69,14 @@ export default function AdminScannerPage() {
   const [sessionHistory, setSessionHistory] = useState<CheckInRecord[]>([]);
   const totalPassesAdmitted = sessionHistory.reduce((sum, item) => sum + item.attendees, 0);
 
-  // Camera state
+  // Camera state & Universal QR Engine
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraFacing, setCameraFacing] = useState<"environment" | "user">("environment");
+  const [scannedAnimation, setScannedAnimation] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const scanIntervalRef = useRef<any>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isScanningRef = useRef<boolean>(false);
+  const animationFrameId = useRef<number | null>(null);
 
   // Stop camera when unmounting
   useEffect(() => {
@@ -80,6 +84,70 @@ export default function AdminScannerPage() {
       stopCamera();
     };
   }, []);
+
+  // Audio feedback on successful QR detection
+  const playScanBeep = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.16);
+    } catch {
+      // Audio autoplay policy catch
+    }
+  };
+
+  // Continuous frame scanning loop with jsQR
+  const tick = () => {
+    if (!isScanningRef.current) return;
+
+    const video = videoRef.current;
+    if (
+      video &&
+      video.readyState >= 2 &&
+      video.videoWidth > 0 &&
+      video.videoHeight > 0
+    ) {
+      if (!canvasRef.current) {
+        canvasRef.current = document.createElement("canvas");
+      }
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "dontInvert",
+        });
+
+        if (code && code.data && code.data.trim()) {
+          const scannedVal = code.data.trim();
+          // Pause scanner while showing result
+          isScanningRef.current = false;
+          playScanBeep();
+          setScannedAnimation(true);
+          setTimeout(() => setScannedAnimation(false), 1200);
+
+          verifyTicket(scannedVal);
+          return;
+        }
+      }
+    }
+
+    animationFrameId.current = requestAnimationFrame(tick);
+  };
 
   const startCamera = async () => {
     setErrorMsg(null);
@@ -89,48 +157,49 @@ export default function AdminScannerPage() {
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: cameraFacing, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
+      stopCamera();
+
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: cameraFacing,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+      } catch {
+        // Fallback for laptop webcams without facingMode or resolution support
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", "true");
         await videoRef.current.play();
         setCameraActive(true);
-
-        // Start scanning frames with native BarcodeDetector if supported
-        if (typeof window !== "undefined" && "BarcodeDetector" in window) {
-          const detector = new (window as any).BarcodeDetector({ formats: ["qr_code"] });
-          scanIntervalRef.current = setInterval(async () => {
-            if (videoRef.current && videoRef.current.readyState === 4) {
-              try {
-                const barcodes = await detector.detect(videoRef.current);
-                if (barcodes.length > 0) {
-                  const scannedVal = barcodes[0].rawValue;
-                  if (scannedVal) {
-                    stopCamera();
-                    verifyTicket(scannedVal);
-                  }
-                }
-              } catch {
-                // frame detect catch
-              }
-            }
-          }, 350);
-        }
+        isScanningRef.current = true;
+        animationFrameId.current = requestAnimationFrame(tick);
       }
     } catch (err: any) {
       console.warn("Camera start err:", err);
-      setErrorMsg("Could not access device camera. Please check camera permissions.");
+      setErrorMsg(
+        "Could not access device camera. Please grant camera permissions in your browser address bar and try again."
+      );
       setCameraActive(false);
+      isScanningRef.current = false;
     }
   };
 
   const stopCamera = () => {
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
+    isScanningRef.current = false;
+    if (animationFrameId.current) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
     }
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
@@ -145,7 +214,20 @@ export default function AdminScannerPage() {
     setCameraFacing((prev) => (prev === "environment" ? "user" : "environment"));
     setTimeout(() => {
       startCamera();
-    }, 200);
+    }, 250);
+  };
+
+  const resumeScanning = () => {
+    setResult(null);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setManualCode("");
+    if (cameraActive && videoRef.current) {
+      isScanningRef.current = true;
+      animationFrameId.current = requestAnimationFrame(tick);
+    } else {
+      startCamera();
+    }
   };
 
   // Verify ticket query
@@ -367,18 +449,56 @@ export default function AdminScannerPage() {
                 <>
                   {/* Holographic targeting reticle */}
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="w-48 h-48 border-2 border-primary/80 rounded-2xl relative shadow-glow">
-                      <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-primary" />
-                      <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-primary" />
-                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-primary" />
-                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-primary" />
+                    <div
+                      className={cn(
+                        "w-52 h-52 border-2 rounded-2xl relative transition-all duration-300",
+                        scannedAnimation
+                          ? "border-emerald-400 bg-emerald-500/25 shadow-glow"
+                          : "border-primary/80 shadow-glow"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "absolute top-0 left-0 w-5 h-5 border-t-4 border-l-4",
+                          scannedAnimation ? "border-emerald-400" : "border-primary"
+                        )}
+                      />
+                      <div
+                        className={cn(
+                          "absolute top-0 right-0 w-5 h-5 border-t-4 border-r-4",
+                          scannedAnimation ? "border-emerald-400" : "border-primary"
+                        )}
+                      />
+                      <div
+                        className={cn(
+                          "absolute bottom-0 left-0 w-5 h-5 border-b-4 border-l-4",
+                          scannedAnimation ? "border-emerald-400" : "border-primary"
+                        )}
+                      />
+                      <div
+                        className={cn(
+                          "absolute bottom-0 right-0 w-5 h-5 border-b-4 border-r-4",
+                          scannedAnimation ? "border-emerald-400" : "border-primary"
+                        )}
+                      />
                       {/* Scanning laser animation line */}
-                      <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse absolute top-1/2 -translate-y-1/2 shadow-glow" />
+                      {!scannedAnimation && (
+                        <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse absolute top-1/2 -translate-y-1/2 shadow-glow" />
+                      )}
                     </div>
                   </div>
                   <div className="absolute bottom-3 inset-x-0 text-center">
-                    <span className="px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-[11px] font-bold uppercase tracking-widest text-primary border border-primary/30">
-                      Align QR inside target box
+                    <span
+                      className={cn(
+                        "px-3.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest border transition-all",
+                        scannedAnimation
+                          ? "bg-emerald-500 text-black border-emerald-400 font-black animate-pulse"
+                          : "bg-black/75 backdrop-blur-md text-primary border-primary/40"
+                      )}
+                    >
+                      {scannedAnimation
+                        ? "✓ QR DECODED — VERIFYING"
+                        : "Align QR inside target box"}
                     </span>
                   </div>
                 </>
@@ -410,15 +530,26 @@ export default function AdminScannerPage() {
             </div>
 
             {cameraActive && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={stopCamera}
-                className="w-full text-red-400 border-red-500/30 hover:bg-red-500/10"
-                leftIcon={<CameraOff className="w-4 h-4" />}
-              >
-                Deactivate Camera
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resumeScanning}
+                  className="flex-1 text-primary border-primary/30 hover:bg-primary/10"
+                  leftIcon={<RefreshCw className="w-4 h-4" />}
+                >
+                  Resume Scanning
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={stopCamera}
+                  className="flex-1 text-red-400 border-red-500/30 hover:bg-red-500/10"
+                  leftIcon={<CameraOff className="w-4 h-4" />}
+                >
+                  Deactivate Camera
+                </Button>
+              </div>
             )}
           </div>
 
@@ -663,14 +794,10 @@ export default function AdminScannerPage() {
                 <Button
                   variant="secondary"
                   size="md"
-                  onClick={() => {
-                    setResult(null);
-                    setManualCode("");
-                    setErrorMsg(null);
-                    setSuccessMsg(null);
-                  }}
+                  onClick={resumeScanning}
+                  leftIcon={<RefreshCw className="w-4 h-4" />}
                 >
-                  Clear Screen
+                  Scan Next Pass
                 </Button>
               </div>
             )}

@@ -18,7 +18,11 @@ export async function GET(req: NextRequest) {
     let cleanCode = rawQuery.trim();
     if (cleanCode.includes("/tickets/")) {
       const parts = cleanCode.split("/tickets/");
-      cleanCode = parts[parts.length - 1].split("?")[0].replace("/", "").trim();
+      cleanCode = parts[parts.length - 1]
+        .split("?")[0]
+        .split("#")[0]
+        .replace(/\/+$/, "")
+        .trim();
     }
 
     const supabase = await createServerSupabaseClient();
