@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/utils/admin";
-
-// In-memory state for preview demo ticket check-in simulation
-let demoTicketCheckedIn = false;
-let demoTicketCheckedInAt: string | null = null;
+import { checkInService } from "@/lib/services/checkInService";
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,7 +31,7 @@ export async function GET(req: NextRequest) {
     // Query registration by UUID or ticket_code safely
     let registration: any = null;
     try {
-      // 1. Try by UUID primary key first (guaranteed column)
+      // 1. Try by UUID primary key first
       const { data: byId } = await supabase
         .from("registrations")
         .select("*, events(*)")
@@ -58,23 +55,7 @@ export async function GET(req: NextRequest) {
 
     // Demo check for preview mode
     if (!registration && (cleanCode.startsWith("demo") || cleanCode === "SF-DEMO2025")) {
-      registration = {
-        id: "demo-ticket-001",
-        ticket_code: "SF-DEMO2025",
-        name: "Alex Rivera",
-        email: "alex@example.com",
-        phone: "+91 98765 43210",
-        attendees: 2,
-        status: demoTicketCheckedIn ? "checked_in" : "confirmed",
-        checked_in_at: demoTicketCheckedInAt,
-        created_at: new Date().toISOString(),
-        events: {
-          title: "Sonic Fest 2025 — Mumbai Edition",
-          date: new Date(Date.now() + 45 * 86400000).toISOString(),
-          venue: "NeoSphere Arena",
-          location: "Bandra Kurla Complex, Mumbai",
-        },
-      };
+      registration = checkInService.getDemoRegistration();
     }
 
     if (!registration) {
@@ -88,14 +69,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const isCheckedIn =
-      registration.status === "checked_in" || !!registration.checked_in_at;
-
-    const ticketCode =
-      registration.ticket_code || `SF-${registration.id.slice(0, 8).toUpperCase()}`;
+    // Enrich registration with live check-in store
+    registration = checkInService.enrichRegistration(registration);
+    const isCheckedIn = checkInService.isCheckedIn(registration);
+    const ticketCode = registration.ticket_code;
 
     // DUPLICATE ENTRY CHECK:
-    // If ticket is already marked checked in, immediately flag as duplicate entry alert
     if (isCheckedIn) {
       const timeStr = registration.checked_in_at
         ? new Date(registration.checked_in_at).toLocaleTimeString([], {
@@ -133,24 +112,26 @@ export async function GET(req: NextRequest) {
 
     // TICKET IS VALID AND NOT YET CHECKED IN!
     // As requested: Automatically update status to 'checked_in' and record entry!
-    const checkInTime = new Date().toISOString();
     const adminIdentifier = "dhrubojyotipatra2007@gmail.com";
+    const checkInRecord = checkInService.recordCheckIn(
+      registration.id,
+      registration.ticket_code,
+      adminIdentifier
+    );
 
-    if (registration.id === "demo-ticket-001") {
-      demoTicketCheckedIn = true;
-      demoTicketCheckedInAt = checkInTime;
-    } else {
+    // Synchronize status update to Supabase if table is migrated
+    if (registration.id !== "demo-ticket-001") {
       try {
         await supabase
           .from("registrations")
           .update({
             status: "checked_in",
-            checked_in_at: checkInTime,
+            checked_in_at: checkInRecord.checkedInAt,
             checked_in_by: adminIdentifier,
           })
           .eq("id", registration.id);
       } catch (updateErr) {
-        console.warn("Auto check-in status update error:", updateErr);
+        console.warn("Auto check-in database update error:", updateErr);
       }
     }
 
@@ -161,7 +142,7 @@ export async function GET(req: NextRequest) {
       message: `ADMISSION APPROVED: Ticket verified & checked in! Issue ${
         registration.attendees
       } wristband${registration.attendees > 1 ? "s" : ""} for ${registration.name}.`,
-      checkedInAt: checkInTime,
+      checkedInAt: checkInRecord.checkedInAt,
       checkedInBy: adminIdentifier,
       registration: {
         id: registration.id,
@@ -201,123 +182,86 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Demo ticket handler (instant preview simulation)
-    if (id === "demo-ticket-001") {
-      const now = new Date().toISOString();
-      if (action === "undo") {
-        demoTicketCheckedIn = false;
-        demoTicketCheckedInAt = null;
-      } else {
-        demoTicketCheckedIn = true;
-        demoTicketCheckedInAt = now;
-      }
-      return NextResponse.json({
-        success: true,
-        message: action === "check_in" ? "Demo pass checked in successfully!" : "Demo check-in undone.",
-        status: action === "check_in" ? "checked_in" : "confirmed",
-        checkedInAt: action === "check_in" ? now : null,
-      });
-    }
-
     const supabase = await createServerSupabaseClient();
-
-    // Verify admin access for real festival database check-ins
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     const isDemoAdmin = req.cookies.get("sonic_fest_admin_demo")?.value === "true";
 
-    if (!isDemoAdmin && (!user || !isAdminEmail(user.email))) {
+    if (!isDemoAdmin && id !== "demo-ticket-001" && (!user || !isAdminEmail(user?.email))) {
       return NextResponse.json(
         { success: false, error: "UNAUTHORIZED", message: "Only administrators can perform ticket check-ins." },
         { status: 403 }
       );
     }
 
-    // Check current registration state safely
-    const { data: currentReg, error: fetchErr } = await supabase
-      .from("registrations")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (fetchErr || !currentReg) {
-      return NextResponse.json(
-        { success: false, error: "TICKET_NOT_FOUND", message: "Registration record could not be found." },
-        { status: 404 }
-      );
-    }
-
-    // Action: CHECK IN
-    if (action === "check_in") {
-      if (currentReg.status === "checked_in" || currentReg.checked_in_at) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "ALREADY_CHECKED_IN",
-            message: `DUPLICATE ENTRY ALERT: This ticket was already checked in at ${new Date(
-              currentReg.checked_in_at
-            ).toLocaleTimeString()}!`,
-            checkedInAt: currentReg.checked_in_at,
-          },
-          { status: 409 }
-        );
-      }
-
-      const checkInTime = new Date().toISOString();
-      const adminIdentifier = user?.email || "dhrubojyotipatra2007@gmail.com";
-
-      try {
-        await supabase
-          .from("registrations")
-          .update({
-            status: "checked_in",
-            checked_in_at: checkInTime,
-            checked_in_by: adminIdentifier,
-          })
-          .eq("id", id);
-      } catch (updateErr) {
-        console.warn("Check-in update catch:", updateErr);
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: `Successfully checked in ${currentReg.name} (${currentReg.attendees} Pass${
-          currentReg.attendees > 1 ? "es" : ""
-        })!`,
-        status: "checked_in",
-        checkedInAt: checkInTime,
-      });
-    }
+    const adminIdentifier = user?.email || "dhrubojyotipatra2007@gmail.com";
 
     // Action: UNDO CHECK IN
     if (action === "undo") {
-      try {
-        await supabase
-          .from("registrations")
-          .update({
-            status: "confirmed",
-            checked_in_at: null,
-            checked_in_by: null,
-          })
-          .eq("id", id);
-      } catch (updateErr) {
-        console.warn("Undo check-in update catch:", updateErr);
+      const record = checkInService.undoCheckIn(id);
+      if (id !== "demo-ticket-001") {
+        try {
+          await supabase
+            .from("registrations")
+            .update({
+              status: "confirmed",
+              checked_in_at: null,
+              checked_in_by: null,
+            })
+            .eq("id", id);
+        } catch (updateErr) {
+          console.warn("Undo check-in database update error:", updateErr);
+        }
       }
 
       return NextResponse.json({
         success: true,
-        message: `Check-in undone for ${currentReg.name}. Ticket is now valid again.`,
+        message: "Check-in undone. Pass is now valid again.",
         status: "confirmed",
         checkedInAt: null,
       });
     }
 
-    return NextResponse.json(
-      { success: false, error: "INVALID_ACTION", message: "Unknown action requested." },
-      { status: 400 }
-    );
+    // Action: CHECK IN
+    const currentStatus = checkInService.getStatus(id);
+    if (currentStatus?.status === "checked_in") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "ALREADY_CHECKED_IN",
+          message: `DUPLICATE ENTRY ALERT: This ticket was already checked in at ${new Date(
+            currentStatus.checkedInAt || Date.now()
+          ).toLocaleTimeString()}!`,
+          checkedInAt: currentStatus.checkedInAt,
+        },
+        { status: 409 }
+      );
+    }
+
+    const record = checkInService.recordCheckIn(id, undefined, adminIdentifier);
+    if (id !== "demo-ticket-001") {
+      try {
+        await supabase
+          .from("registrations")
+          .update({
+            status: "checked_in",
+            checked_in_at: record.checkedInAt,
+            checked_in_by: adminIdentifier,
+          })
+          .eq("id", id);
+      } catch (updateErr) {
+        console.warn("Check-in database update error:", updateErr);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Pass checked in successfully!",
+      status: "checked_in",
+      checkedInAt: record.checkedInAt,
+    });
   } catch (err: unknown) {
     console.error("Ticket verify POST error:", err);
     return NextResponse.json(

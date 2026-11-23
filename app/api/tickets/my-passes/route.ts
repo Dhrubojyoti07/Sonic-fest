@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { checkInService } from "@/lib/services/checkInService";
 import QRCode from "qrcode";
 
 export async function GET(req: NextRequest) {
@@ -95,13 +96,18 @@ export async function GET(req: NextRequest) {
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin || "http://localhost:3000";
 
+    // Injects demo pass if requested or in demo list
+    if (requestedCode === "SF-DEMO2025" || requestedCode === "demo-ticket-001" || requestedIds.includes("demo-ticket-001")) {
+      registrationsMap.set("demo-ticket-001", checkInService.getDemoRegistration());
+    }
+
     const registrationsList = Array.from(registrationsMap.values());
 
     // Generate QR codes and format output
     const passes = await Promise.all(
-      registrationsList.map(async (reg) => {
-        const ticketCode =
-          reg.ticket_code || `SF-${reg.id.slice(0, 8).toUpperCase()}`;
+      registrationsList.map(async (rawReg) => {
+        const reg = checkInService.enrichRegistration(rawReg);
+        const ticketCode = reg.ticket_code;
         const ticketUrl = `${siteUrl}/tickets/${reg.id}`;
 
         let qrDataUrl = "";
@@ -115,8 +121,7 @@ export async function GET(req: NextRequest) {
           // fallback if QR generation fails
         }
 
-        const isCheckedIn =
-          reg.status === "checked_in" || !!reg.checked_in_at;
+        const isCheckedIn = checkInService.isCheckedIn(reg);
 
         return {
           id: reg.id,

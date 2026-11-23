@@ -1,6 +1,7 @@
 import React from "react";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { checkInService } from "@/lib/services/checkInService";
 import { formatDate, formatTime } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -65,27 +66,13 @@ export default async function TicketPassPage({ params }: TicketPageProps) {
   // Fallback demo ticket if id is a preview reference
   if (!registration) {
     if (id.startsWith("demo") || id.startsWith("SF-")) {
-      registration = {
-        id: "demo-ticket-001",
-        ticket_code: "SF-DEMO2025",
-        name: "Alex Rivera",
-        email: "alex@example.com",
-        phone: "+91 98765 43210",
-        attendees: 2,
-        status: "confirmed",
-        created_at: new Date().toISOString(),
-        events: {
-          title: "Sonic Fest 2025 — Mumbai Edition",
-          date: new Date(Date.now() + 45 * 86400000).toISOString(),
-          start_time: "17:00",
-          venue: "NeoSphere Arena",
-          location: "Bandra Kurla Complex, Mumbai",
-        },
-      };
+      registration = checkInService.getDemoRegistration();
     } else {
       notFound();
     }
   }
+
+  registration = checkInService.enrichRegistration(registration);
 
   const event = registration.events || {
     title: "Sonic Fest 2025",
@@ -95,11 +82,8 @@ export default async function TicketPassPage({ params }: TicketPageProps) {
     location: "Festival Grounds",
   };
 
-  const ticketCode =
-    registration.ticket_code || `SF-${registration.id.slice(0, 8).toUpperCase()}`;
-
-  const isCheckedIn =
-    registration.status === "checked_in" || !!registration.checked_in_at;
+  const ticketCode = registration.ticket_code;
+  const isCheckedIn = checkInService.isCheckedIn(registration);
 
   // Generate QR code for gate scanning
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";

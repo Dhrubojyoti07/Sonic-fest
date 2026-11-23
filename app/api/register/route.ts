@@ -106,10 +106,11 @@ export async function POST(req: NextRequest) {
     let dbStored = false;
 
     try {
-      // Try inserting with ticket_code and status
-      const { data: registration, error: insertError } = await supabase
+      // 1. Try inserting with ticket_code, status, and explicit id
+      const { error: insertError } = await supabase
         .from("registrations")
         .insert({
+          id: registrationId,
           event_id: eventId,
           name: name.trim(),
           email: email.trim().toLowerCase(),
@@ -117,32 +118,27 @@ export async function POST(req: NextRequest) {
           attendees: Number(attendees),
           ticket_code: ticketCode,
           status: "confirmed",
-        })
-        .select("id, ticket_code, created_at")
-        .single();
+        });
 
-      if (registration?.id) {
-        registrationId = registration.id;
-        if (registration.ticket_code) ticketCode = registration.ticket_code;
+      if (!insertError) {
         dbStored = true;
-      } else if (insertError) {
-        // Fallback in case migration 002 hasn't been executed yet in Supabase SQL editor
-        const fallback = await supabase
+      } else {
+        // Fallback: insert without ticket_code and status if migration 002 not yet executed
+        const { error: fallbackError } = await supabase
           .from("registrations")
           .insert({
+            id: registrationId,
             event_id: eventId,
             name: name.trim(),
             email: email.trim().toLowerCase(),
             phone: phone.trim(),
             attendees: Number(attendees),
-          })
-          .select("id, created_at")
-          .single();
+          });
 
-        if (fallback.data?.id) {
-          registrationId = fallback.data.id;
-          ticketCode = `SF-${registrationId.slice(0, 8).toUpperCase()}`;
+        if (!fallbackError) {
           dbStored = true;
+        } else {
+          console.warn("Registrations fallback insert error:", fallbackError);
         }
       }
     } catch (insertErr) {
