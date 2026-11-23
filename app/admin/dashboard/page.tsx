@@ -103,11 +103,11 @@ export default function AdminDashboardPage() {
         subtitle="Real-time festival operations, turnstile gate check-ins, and credential management."
       />
 
-      <div className="p-6 sm:p-8 space-y-8 max-w-7xl">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full">
         {/* Metric Cards Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Total Registrations */}
-          <div className="p-6 rounded-2xl bg-surface-subtle border border-white/10 relative overflow-hidden shadow-lg">
+          <div className="p-4 sm:p-6 rounded-2xl bg-surface-subtle border border-white/10 relative overflow-hidden shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-primary">
                 Total Registrations
@@ -126,7 +126,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Turnstile Admissions / Checked In */}
-          <div className="p-6 rounded-2xl bg-surface-subtle border border-white/10 relative overflow-hidden shadow-lg">
+          <div className="p-4 sm:p-6 rounded-2xl bg-surface-subtle border border-white/10 relative overflow-hidden shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                 Gate Checked In
@@ -145,7 +145,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Events */}
-          <div className="p-6 rounded-2xl bg-surface-subtle border border-white/10 relative overflow-hidden shadow-lg">
+          <div className="p-4 sm:p-6 rounded-2xl bg-surface-subtle border border-white/10 relative overflow-hidden shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-accent-purple">
                 Active Events
@@ -163,7 +163,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Artists */}
-          <div className="p-6 rounded-2xl bg-surface-subtle border border-white/10 relative overflow-hidden shadow-lg">
+          <div className="p-4 sm:p-6 rounded-2xl bg-surface-subtle border border-white/10 relative overflow-hidden shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-accent-cyan">
                 Festival Artists
@@ -182,7 +182,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Quick Operations */}
-        <div className="p-6 rounded-3xl bg-surface-subtle border border-white/10 space-y-4 shadow-xl">
+        <div className="p-4 sm:p-6 rounded-3xl bg-surface-subtle border border-white/10 space-y-4 shadow-xl">
           <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
             Quick Gate & Festival Controls
@@ -233,7 +233,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Recent Registrations Table with Live Status */}
-        <div className="p-6 rounded-3xl bg-surface-subtle border border-white/10 space-y-4 shadow-xl">
+        <div className="p-4 sm:p-6 rounded-3xl bg-surface-subtle border border-white/10 space-y-4 shadow-xl">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold uppercase tracking-wider text-white">

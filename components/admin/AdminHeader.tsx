@@ -52,17 +52,19 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, subtitle }) => 
   }, [supabase]);
 
   return (
-    <header className="h-16 border-b border-white/10 bg-[#0c0a1a]/80 backdrop-blur-md px-6 flex items-center justify-between shrink-0">
-      <div>
-        <h1 className="text-base sm:text-lg font-black uppercase tracking-wider text-white">
+    <header className="min-h-[4rem] py-3 sm:py-0 border-b border-white/10 bg-[#0c0a1a]/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between shrink-0 gap-3">
+      <div className="min-w-0 flex-1">
+        <h1 className="text-sm sm:text-base lg:text-lg font-black uppercase tracking-wider text-white truncate">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-xs text-foreground-muted">{subtitle}</p>
+          <p className="text-[11px] sm:text-xs text-foreground-muted line-clamp-1 sm:line-clamp-none">
+            {subtitle}
+          </p>
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
         <Link
           href="/"
           target="_blank"
@@ -73,7 +75,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, subtitle }) => 
         </Link>
 
         <div className="flex items-center gap-2 pl-2 border-l border-white/10">
-          <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 text-primary flex items-center justify-center font-bold text-xs uppercase">
+          <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 text-primary flex items-center justify-center font-bold text-xs uppercase shrink-0">
             {adminName ? adminName.charAt(0) : <User className="w-4 h-4" />}
           </div>
           <div className="hidden md:flex flex-col text-left leading-tight">
@@ -82,7 +84,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, subtitle }) => 
                 {adminName}
               </span>
             )}
-            <span className="text-[11px] text-foreground-muted">
+            <span className="text-[11px] text-foreground-muted truncate max-w-[180px]">
               {adminEmail}
             </span>
           </div>

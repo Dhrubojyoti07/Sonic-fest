@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { isAdminEmail } from "@/lib/utils/admin";
+import { Menu, ExternalLink } from "lucide-react";
 
 export default function AdminLayout({
   children,
@@ -66,6 +68,13 @@ export default function AdminLayout({
     };
   }, [pathname, isAuthPage, router, supabase]);
 
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [pathname]);
+
   if (isAuthPage) {
     return <>{children}</>;
   }
@@ -84,15 +93,62 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#08070e] flex">
-      {/* Admin Sidebar Navigation */}
-      <AdminSidebar />
+    <div className="min-h-screen bg-[#08070e] flex flex-col lg:flex-row">
+      {/* Mobile Sticky Top App Bar (Only on mobile < lg) */}
+      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-[#0a0815]/95 backdrop-blur-md border-b border-white/10 shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="p-2 -ml-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Open Navigation Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <Link href="/admin/dashboard" className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-xs font-black tracking-widest text-white uppercase">
+              SONIC ADMIN
+            </span>
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            target="_blank"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent-purple/10 border border-accent-purple/20 text-[11px] font-bold text-accent-purple hover:bg-accent-purple/20 transition-colors"
+          >
+            <ExternalLink className="w-3 h-3" />
+            <span>Live Site</span>
+          </Link>
+        </div>
+      </header>
+
+      {/* Mobile Drawer (Only on mobile < lg) */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+            onClick={() => setMobileSidebarOpen(false)}
+            aria-hidden="true"
+          />
+          {/* Drawer content */}
+          <div className="relative w-72 max-w-[85vw] bg-[#0a0815] border-r border-white/10 h-full flex flex-col z-10 shadow-2xl animate-in slide-in-from-left duration-200">
+            <AdminSidebar isMobile onClose={() => setMobileSidebarOpen(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Sidebar Navigation (Only on lg+) */}
+      <div className="hidden lg:flex shrink-0">
+        <AdminSidebar />
+      </div>
 
       {/* Main Admin Content */}
-      <main className="flex-1 min-w-0 overflow-y-auto">
-        <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
-          {children}
-        </div>
+      <main className="flex-1 min-w-0 overflow-y-auto w-full">
+        {children}
       </main>
     </div>
   );

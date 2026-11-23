@@ -186,7 +186,7 @@ export default function AdminEventsPage() {
         subtitle="Create, edit, schedule, and manage public visibility for festival dates."
       />
 
-      <div className="p-6 sm:p-8 space-y-6 max-w-7xl">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full">
         {/* Top Action Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>

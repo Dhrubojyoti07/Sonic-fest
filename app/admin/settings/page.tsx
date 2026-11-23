@@ -103,7 +103,7 @@ export default function AdminSettingsPage() {
         subtitle="Configure festival identity, hero typography, social channels, and footer copy dynamically."
       />
 
-      <div className="p-6 sm:p-8 space-y-8 max-w-5xl">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-5xl w-full">
         {/* Callout Notice for Client Reusability */}
         <div className="p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-accent-purple/10 to-transparent border border-primary/30 flex items-start gap-4">
           <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />

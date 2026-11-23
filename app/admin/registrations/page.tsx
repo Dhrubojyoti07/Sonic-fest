@@ -220,7 +220,7 @@ export default function AdminRegistrationsPage() {
         subtitle="Live gate credential roster, turnstile status tracking, and attendee check-ins."
       />
 
-      <div className="p-6 sm:p-8 space-y-6 max-w-7xl">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full">
         {/* Metric Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl bg-surface-subtle border border-white/10 shadow-lg">

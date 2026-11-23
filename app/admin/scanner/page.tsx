@@ -435,13 +435,14 @@ export default function AdminScannerPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
+    <div className="flex-1 flex flex-col pb-12 animate-fade-in">
       <AdminHeader
         title="Turnstile QR Scanner & Gate Check-In"
         subtitle="Real-time optical scanner & credential check-in engine for Sonic Fest attendees."
       />
 
-      {/* Top Gate Status Overview */}
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl w-full">
+        {/* Top Gate Status Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl bg-surface-subtle border border-white/10 shadow-lg flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-primary/20 text-primary flex items-center justify-center shrink-0">
@@ -942,6 +943,7 @@ export default function AdminScannerPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

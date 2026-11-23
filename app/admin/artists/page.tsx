@@ -149,7 +149,7 @@ export default function AdminArtistsPage() {
         subtitle="Curate performers, upload portraits, assign acts to stages and tour editions."
       />
 
-      <div className="p-6 sm:p-8 space-y-6 max-w-7xl">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold uppercase tracking-tight text-white">
