@@ -17,3 +17,9 @@ WHERE ticket_code IS NULL;
 -- Create indexes for ultra-fast gate QR code scanning & lookup
 CREATE UNIQUE INDEX IF NOT EXISTS idx_registrations_ticket_code ON public.registrations(ticket_code);
 CREATE INDEX IF NOT EXISTS idx_registrations_status ON public.registrations(status);
+
+-- Enable status updates for turnstile QR gate check-ins
+CREATE POLICY "Allow gate check-in status updates"
+    ON public.registrations FOR UPDATE
+    USING (true)
+    WITH CHECK (true);

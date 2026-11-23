@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -16,13 +16,13 @@ import {
   Calendar,
   MapPin,
   Clock,
-  Sparkles,
   RotateCw,
   RefreshCw,
-  ArrowRight,
   ShieldCheck,
   UserCheck,
   Undo2,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import jsQR from "jsqr";
@@ -31,6 +31,7 @@ interface VerificationResult {
   valid: boolean;
   alreadyCheckedIn: boolean;
   checkedInAt: string | null;
+  checkedInBy?: string | null;
   registration: {
     id: string;
     ticketCode: string;
@@ -64,6 +65,7 @@ export default function AdminScannerPage() {
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   // Live session gate stats
   const [sessionHistory, setSessionHistory] = useState<CheckInRecord[]>([]);
@@ -85,8 +87,9 @@ export default function AdminScannerPage() {
     };
   }, []);
 
-  // Audio feedback on successful QR detection
-  const playScanBeep = () => {
+  // Web Audio sound feedback effects
+  const playScanBeep = useCallback(() => {
+    if (!soundEnabled) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
@@ -96,15 +99,98 @@ export default function AdminScannerPage() {
       osc.type = "sine";
       osc.frequency.setValueAtTime(880, ctx.currentTime);
       gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.16);
-    } catch {
-      // Audio autoplay policy catch
-    }
-  };
+      osc.stop(ctx.currentTime + 0.12);
+    } catch {}
+  }, [soundEnabled]);
+
+  const playSuccessChime = useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      // Note 1: D5 (587.33 Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "triangle";
+      osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.16);
+
+      // Note 2: A5 (880 Hz)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "triangle";
+      osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+      gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.1);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(ctx.currentTime + 0.1);
+      osc2.stop(ctx.currentTime + 0.35);
+    } catch {}
+  }, [soundEnabled]);
+
+  const playDuplicateAlert = useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      // Warning tone 1
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sawtooth";
+      osc1.frequency.setValueAtTime(220, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.15);
+
+      // Warning tone 2
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sawtooth";
+      osc2.frequency.setValueAtTime(180, ctx.currentTime + 0.18);
+      gain2.gain.setValueAtTime(0.35, ctx.currentTime + 0.18);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.42);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(ctx.currentTime + 0.18);
+      osc2.stop(ctx.currentTime + 0.42);
+    } catch {}
+  }, [soundEnabled]);
+
+  const playErrorSound = useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(160, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    } catch {}
+  }, [soundEnabled]);
 
   // Continuous frame scanning loop with jsQR
   const tick = () => {
@@ -217,7 +303,7 @@ export default function AdminScannerPage() {
     }, 250);
   };
 
-  const resumeScanning = () => {
+  const resumeScanning = useCallback(() => {
     setResult(null);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -228,9 +314,27 @@ export default function AdminScannerPage() {
     } else {
       startCamera();
     }
-  };
+  }, [cameraActive]);
 
-  // Verify ticket query
+  // Keyboard shortcut: Space or Enter to scan next attendee when result is active
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+      if ((result || errorMsg) && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        resumeScanning();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [result, errorMsg, resumeScanning]);
+
+  // Verify ticket query (Automatically updates status to checked_in on backend and checks duplicates)
   const verifyTicket = async (queryVal: string) => {
     const clean = queryVal.trim();
     if (!clean) return;
@@ -246,67 +350,39 @@ export default function AdminScannerPage() {
 
       if (!res.ok || !data.success) {
         setErrorMsg(data.message || "Ticket verification failed. Pass not recognized.");
+        playErrorSound();
         return;
       }
 
       setResult(data);
+
+      if (data.alreadyCheckedIn) {
+        // DUPLICATE ENTRY ALERT: pass was already marked checked in!
+        playDuplicateAlert();
+      } else {
+        // ADMISSION APPROVED: pass verified and status set to checked_in!
+        playSuccessChime();
+        setSuccessMsg(data.message);
+
+        // Record admission in current gate session history
+        const newRecord: CheckInRecord = {
+          id: data.registration.id,
+          name: data.registration.name,
+          ticketCode: data.registration.ticketCode,
+          attendees: data.registration.attendees,
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          }),
+        };
+        setSessionHistory((prev) => [newRecord, ...prev.filter((r) => r.id !== newRecord.id)]);
+      }
     } catch {
       setErrorMsg("Network error contacting ticket validation gateway.");
+      playErrorSound();
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Check In action
-  const handleCheckIn = async () => {
-    if (!result?.registration?.id) return;
-    setActionLoading(true);
-    setErrorMsg(null);
-
-    try {
-      const res = await fetch("/api/tickets/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: result.registration.id, action: "check_in" }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setErrorMsg(data.message || "Failed to check in ticket.");
-        return;
-      }
-
-      setSuccessMsg(data.message);
-
-      // Update current result state to checked in
-      setResult((prev) =>
-        prev
-          ? {
-              ...prev,
-              alreadyCheckedIn: true,
-              checkedInAt: data.checkedInAt || new Date().toISOString(),
-              registration: {
-                ...prev.registration,
-                status: "checked_in",
-              },
-            }
-          : null
-      );
-
-      // Add to session roster
-      const newRecord: CheckInRecord = {
-        id: result.registration.id,
-        name: result.registration.name,
-        ticketCode: result.registration.ticketCode,
-        attendees: result.registration.attendees,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-      };
-      setSessionHistory((prev) => [newRecord, ...prev]);
-    } catch {
-      setErrorMsg("Check-in execution error. Please retry.");
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -332,7 +408,7 @@ export default function AdminScannerPage() {
         return;
       }
 
-      setSuccessMsg("Check-in has been undone. Ticket is valid again.");
+      setSuccessMsg("Check-in undone. Pass reactivated and valid again.");
 
       if (result && result.registration.id === targetId) {
         setResult((prev) =>
@@ -362,7 +438,7 @@ export default function AdminScannerPage() {
     <div className="space-y-8 animate-fade-in pb-12">
       <AdminHeader
         title="Turnstile QR Scanner & Gate Check-In"
-        subtitle="Live camera scanner and credential validation engine for festival attendees."
+        subtitle="Real-time optical scanner & credential check-in engine for Sonic Fest attendees."
       />
 
       {/* Top Gate Status Overview */}
@@ -401,7 +477,7 @@ export default function AdminScannerPage() {
             </div>
             <div className="text-sm font-black text-emerald-400 flex items-center gap-1.5 mt-1">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>LIVE & SYNCHRONIZED</span>
+              <span>AUTO-CHECKIN ACTIVE</span>
             </div>
           </div>
         </div>
@@ -421,16 +497,32 @@ export default function AdminScannerPage() {
                 </h2>
               </div>
 
-              {cameraActive && (
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={toggleCameraFacing}
-                  className="text-xs text-foreground-muted hover:text-white flex items-center gap-1 py-1 px-2.5 rounded-lg bg-surface-elevated border border-white/10"
+                  onClick={() => setSoundEnabled((prev) => !prev)}
+                  title={soundEnabled ? "Mute Gate Sounds" : "Enable Gate Sounds"}
+                  className={cn(
+                    "p-1.5 rounded-lg border text-xs transition-colors flex items-center gap-1",
+                    soundEnabled
+                      ? "text-primary border-primary/30 bg-primary/10"
+                      : "text-foreground-muted border-white/10 bg-surface-elevated"
+                  )}
                 >
-                  <RotateCw className="w-3.5 h-3.5" />
-                  <span>Flip Camera</span>
+                  {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                 </button>
-              )}
+
+                {cameraActive && (
+                  <button
+                    type="button"
+                    onClick={toggleCameraFacing}
+                    className="text-xs text-foreground-muted hover:text-white flex items-center gap-1 py-1 px-2.5 rounded-lg bg-surface-elevated border border-white/10"
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                    <span>Flip Camera</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Video Box */}
@@ -481,7 +573,7 @@ export default function AdminScannerPage() {
                           scannedAnimation ? "border-emerald-400" : "border-primary"
                         )}
                       />
-                      {/* Scanning laser animation line */}
+                      {/* Scanning laser line */}
                       {!scannedAnimation && (
                         <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse absolute top-1/2 -translate-y-1/2 shadow-glow" />
                       )}
@@ -586,7 +678,7 @@ export default function AdminScannerPage() {
                 isLoading={loading}
                 disabled={!manualCode.trim()}
               >
-                Verify
+                Verify & Check In
               </Button>
             </form>
 
@@ -600,7 +692,7 @@ export default function AdminScannerPage() {
                 }}
                 className="text-primary hover:underline font-mono font-bold"
               >
-                Load Demo (SF-DEMO2025)
+                Test Demo Pass (SF-DEMO2025)
               </button>
             </div>
           </div>
@@ -627,7 +719,7 @@ export default function AdminScannerPage() {
                 </span>
                 {result && (
                   <Badge variant={result.alreadyCheckedIn ? "warning" : "success"}>
-                    {result.alreadyCheckedIn ? "Checked In" : "Valid"}
+                    {result.alreadyCheckedIn ? "Already Checked In" : "Admission Approved"}
                   </Badge>
                 )}
               </div>
@@ -643,11 +735,11 @@ export default function AdminScannerPage() {
                 </div>
               )}
 
-              {successMsg && (
+              {successMsg && !result?.alreadyCheckedIn && (
                 <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-start gap-3 mb-6 animate-fade-in">
                   <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-bold text-sm uppercase">Success</div>
+                    <div className="font-bold text-sm uppercase">Check-In Synchronized</div>
                     <div className="mt-1 leading-relaxed">{successMsg}</div>
                   </div>
                 </div>
@@ -664,7 +756,7 @@ export default function AdminScannerPage() {
                       Turnstile Standby Mode
                     </h3>
                     <p className="text-xs text-foreground-muted max-w-sm mx-auto mt-1 leading-relaxed">
-                      Scan an attendee's QR code with the camera or submit a Ticket ID to check admission validity.
+                      Scan an attendee's QR code with the camera or submit a Ticket ID. The system will verify validity, update status to checked in, and flag duplicate entries.
                     </p>
                   </div>
                 </div>
@@ -675,7 +767,7 @@ export default function AdminScannerPage() {
                 <div className="text-center py-16 space-y-4">
                   <div className="w-12 h-12 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
                   <div className="text-xs font-bold uppercase tracking-wider text-foreground-muted">
-                    Checking Festival Database...
+                    Checking Festival Database & Recording Entry...
                   </div>
                 </div>
               )}
@@ -685,15 +777,18 @@ export default function AdminScannerPage() {
                 <div className="space-y-6 animate-fade-in">
                   {/* Status Banner */}
                   {result.alreadyCheckedIn ? (
-                    <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-300 flex items-start gap-3">
-                      <AlertTriangle className="w-6 h-6 shrink-0 text-amber-400 mt-0.5" />
-                      <div>
-                        <div className="font-black text-sm uppercase tracking-wide">
-                          DUPLICATE ENTRY DETECTED!
+                    <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/50 text-amber-300 flex items-start gap-4 shadow-[0_0_30px_rgba(245,158,11,0.25)] animate-shake">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-400 border border-amber-500/30">
+                        <AlertTriangle className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="font-black text-base uppercase tracking-wider text-amber-300 flex items-center gap-2">
+                          <span>DUPLICATE ENTRY DETECTED!</span>
+                          <Badge variant="warning" className="text-[10px] uppercase font-black">DENIED</Badge>
                         </div>
-                        <div className="text-xs text-amber-200 mt-1">
-                          This ticket was already checked in at{" "}
-                          <strong>
+                        <div className="text-xs text-amber-200/90 leading-relaxed">
+                          This pass was already checked in at{" "}
+                          <strong className="text-white underline">
                             {result.checkedInAt
                               ? new Date(result.checkedInAt).toLocaleTimeString([], {
                                   hour: "2-digit",
@@ -707,14 +802,21 @@ export default function AdminScannerPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 flex items-start gap-3 shadow-glow">
-                      <ShieldCheck className="w-6 h-6 shrink-0 text-emerald-400 mt-0.5" />
-                      <div>
-                        <div className="font-black text-sm uppercase tracking-wide">
-                          TICKET VALID — ADMISSION APPROVED
+                    <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/15 border-2 border-emerald-500/50 text-emerald-300 flex items-start gap-4 shadow-[0_0_30px_rgba(16,185,129,0.25)] animate-fade-in">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-400 border border-emerald-500/30">
+                        <ShieldCheck className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="font-black text-base uppercase tracking-wider text-emerald-300 flex items-center gap-2">
+                          <span>ADMISSION APPROVED — CHECKED IN ✓</span>
+                          <Badge variant="success" className="text-[10px] uppercase font-black">VALID</Badge>
                         </div>
-                        <div className="text-xs text-emerald-200 mt-1">
-                          Pass verified. Authorized to issue RFID wristbands.
+                        <div className="text-xs text-emerald-200/90 leading-relaxed">
+                          Status updated to <strong>checked_in</strong>. Issue{" "}
+                          <strong className="text-white underline">
+                            {result.registration.attendees} wristband{result.registration.attendees > 1 ? "s" : ""}
+                          </strong>{" "}
+                          for {result.registration.name}.
                         </div>
                       </div>
                     </div>
@@ -771,33 +873,33 @@ export default function AdminScannerPage() {
                   <Button
                     variant="primary"
                     size="lg"
-                    className="w-full text-base font-black shadow-glow"
-                    onClick={handleCheckIn}
-                    isLoading={actionLoading}
-                    leftIcon={<CheckCircle className="w-5 h-5 text-white" />}
+                    className="flex-1 text-base font-black shadow-glow bg-emerald-500 hover:bg-emerald-600 text-black border-none"
+                    onClick={resumeScanning}
+                    leftIcon={<CheckCircle className="w-5 h-5 text-black" />}
                   >
-                    Confirm & Check In Attendee
+                    Admission Recorded ✓ (Scan Next: Space / Enter)
                   </Button>
                 ) : (
                   <Button
-                    variant="outline"
-                    size="md"
-                    className="w-full text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
-                    onClick={() => handleUndo()}
-                    isLoading={actionLoading}
-                    leftIcon={<Undo2 className="w-4 h-4" />}
+                    variant="primary"
+                    size="lg"
+                    className="flex-1 text-base font-black"
+                    onClick={resumeScanning}
+                    leftIcon={<RefreshCw className="w-5 h-5" />}
                   >
-                    Undo Check-In (Reactivate Pass)
+                    Scan Next Pass (Space / Enter)
                   </Button>
                 )}
 
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="md"
-                  onClick={resumeScanning}
-                  leftIcon={<RefreshCw className="w-4 h-4" />}
+                  className="text-amber-400 border-amber-500/30 hover:bg-amber-500/10 shrink-0"
+                  onClick={() => handleUndo()}
+                  isLoading={actionLoading}
+                  leftIcon={<Undo2 className="w-4 h-4" />}
                 >
-                  Scan Next Pass
+                  Undo Check-In
                 </Button>
               </div>
             )}
