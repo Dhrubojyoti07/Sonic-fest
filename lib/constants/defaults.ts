@@ -9,7 +9,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   about_title: "Sonic Fest 2025",
   about_description:
     "Get ready for an electrifying musical journey with world-class artists, immersive stages, and an unforgettable atmosphere.",
-  contact_email: "contact@sonicfest.live",
+  contact_email: "dhrubojyotipatra2007@gmail.com",
   contact_phone: "+91 (022) 8900-3450",
   instagram_url: "https://instagram.com",
   youtube_url: "https://youtube.com",

@@ -27,7 +27,7 @@ export function generateRegistrationEmailHtml({
   qrDataUrl,
   ticketUrl,
   siteName = "SONIC FEST",
-  contactEmail = "support@sonicfest.live",
+  contactEmail = "dhrubojyotipatra2007@gmail.com",
 }: EmailConfirmationProps): string {
   const shortRef = ticketCode || `SF-${registrationId.slice(0, 8).toUpperCase()}`;
 

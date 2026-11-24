@@ -102,8 +102,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-slate-200">
               <p><strong>Festival Operations & Support:</strong></p>
-              <p className="text-primary font-mono text-sm mt-1">dhrubojyotipatra07@dhrubojyoti.site</p>
-              <p className="text-xs text-slate-400 mt-1">Organizer Contact: dhrubojyotipatra2007@gmail.com</p>
+              <p className="text-primary font-mono text-sm mt-1">dhrubojyotipatra2007@gmail.com</p>
             </div>
           </section>
         </div>

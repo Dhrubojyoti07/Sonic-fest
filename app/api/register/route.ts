@@ -190,6 +190,7 @@ export async function POST(req: NextRequest) {
         const emailResult = await resend.emails.send({
           from: DEFAULT_FROM_EMAIL,
           to: [email.trim().toLowerCase()],
+          replyTo: "dhrubojyotipatra2007@gmail.com",
           subject: `Pass Confirmed: ${eventTitle} — Ref #${ticketCode}`,
           html,
         });
