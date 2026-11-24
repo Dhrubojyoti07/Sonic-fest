@@ -9,4 +9,4 @@ if (!apiKey) {
 export const resend = apiKey ? new Resend(apiKey) : null;
 
 export const DEFAULT_FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL || "Sonic Fest <onboarding@resend.dev>";
+  process.env.RESEND_FROM_EMAIL || "Sonic Fest <tickets@dhrubojyoti.site>";
