@@ -124,24 +124,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center gap-2 group transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
+            className="flex items-center gap-3 group transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
           >
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={siteName}
-                className="h-9 w-auto object-contain"
-              />
-            ) : (
-              <div className="flex flex-col leading-none">
-                <span className="text-xl sm:text-2xl font-black tracking-widest text-white group-hover:text-primary transition-colors">
-                  {firstWord}
-                </span>
-                <span className="text-xs sm:text-sm font-extrabold tracking-[0.25em] text-primary group-hover:text-white transition-colors">
-                  {restWord}
-                </span>
-              </div>
-            )}
+            <img
+              src={logoUrl && logoUrl.trim() !== "" ? logoUrl : "/images/sonic-fest-logo.jpg"}
+              alt={siteName}
+              className="h-10 sm:h-12 w-auto object-contain rounded-md shadow-md hover:scale-105 transition-transform"
+            />
           </Link>
 
           {/* Desktop Navigation */}

@@ -106,7 +106,11 @@ export default function AdminLayout({
             <Menu className="w-5 h-5" />
           </button>
           <Link href="/admin/dashboard" className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+            <img
+              src="/images/sonic-fest-logo.jpg"
+              alt="Sonic Fest"
+              className="h-7 w-auto object-contain rounded"
+            />
             <span className="text-xs font-black tracking-widest text-white uppercase">
               SONIC ADMIN
             </span>

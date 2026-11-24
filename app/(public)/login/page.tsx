@@ -264,7 +264,14 @@ function CustomerLoginForm() {
 
       <div className="w-full max-w-md relative z-10">
         {/* Brand Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 flex flex-col items-center">
+          <Link href="/" className="mb-4 inline-block hover:scale-105 transition-transform">
+            <img
+              src="/images/sonic-fest-logo.jpg"
+              alt="Sonic Fest"
+              className="h-16 w-auto object-contain rounded-xl shadow-lg border border-white/10"
+            />
+          </Link>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-bold uppercase tracking-widest mb-4 shadow-glow">
             <Sparkles className="w-3.5 h-3.5 animate-pulse" /> Sonic Fest Pass Gateway
           </div>

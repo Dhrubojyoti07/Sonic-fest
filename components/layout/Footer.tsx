@@ -22,13 +22,12 @@ export const Footer: React.FC<FooterProps> = ({ settings }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 pb-12 border-b border-white/10">
           {/* Brand info */}
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="inline-flex flex-col leading-none">
-              <span className="text-2xl font-black tracking-widest text-white">
-                {firstWord}
-              </span>
-              <span className="text-sm font-extrabold tracking-[0.25em] text-primary">
-                {restWord}
-              </span>
+            <Link href="/" className="inline-block hover:opacity-90 transition-opacity">
+              <img
+                src={settings.logo_url && settings.logo_url.trim() !== "" ? settings.logo_url : "/images/sonic-fest-logo.jpg"}
+                alt={settings.site_name || "Sonic Fest"}
+                className="h-12 sm:h-14 w-auto object-contain rounded-md"
+              />
             </Link>
 
             <p className="text-sm text-foreground-muted/90 max-w-sm leading-relaxed">

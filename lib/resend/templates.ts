@@ -170,9 +170,9 @@ export function generateRegistrationEmailHtml({
   <div class="wrapper">
     <table class="container" width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td class="header">
-          <h1 class="brand-title">${siteName}</h1>
-          <div class="brand-sub">Official Festival Pass</div>
+        <td class="header" style="background: #08070e; border-bottom: 2px solid #ff007a; padding: 24px 20px; text-align: center;">
+          <img src="https://sonic-fest.dhrubojyotipatra2007.workers.dev/images/sonic-fest-logo.jpg" alt="${siteName}" width="220" style="max-width: 220px; height: auto; display: block; margin: 0 auto 10px auto; border-radius: 8px;" />
+          <div class="brand-sub" style="color: #ff007a; font-weight: bold; letter-spacing: 2px;">OFFICIAL FESTIVAL PASS</div>
         </td>
       </tr>
       <tr>

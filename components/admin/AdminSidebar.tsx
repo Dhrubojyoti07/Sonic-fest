@@ -67,14 +67,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobile, onClose })
           <Link
             href="/admin/dashboard"
             onClick={onClose}
-            className="flex items-center gap-2 group"
+            className="flex items-center gap-3 group"
           >
-            <span className="w-3 h-3 rounded-full bg-primary animate-pulse" />
+            <img
+              src="/images/sonic-fest-logo.jpg"
+              alt="Sonic Fest"
+              className="h-10 w-auto object-contain rounded-md border border-white/10"
+            />
             <div>
-              <span className="text-base font-black tracking-widest text-white uppercase block leading-none">
+              <span className="text-sm font-black tracking-widest text-white uppercase block leading-none">
                 SONIC ADMIN
               </span>
-              <span className="text-[10px] font-bold tracking-widest text-primary uppercase">
+              <span className="text-[9px] font-bold tracking-widest text-primary uppercase">
                 CONTROL SUITE
               </span>
             </div>
