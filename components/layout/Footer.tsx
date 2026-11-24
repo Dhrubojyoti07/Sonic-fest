@@ -184,7 +184,13 @@ export const Footer: React.FC<FooterProps> = ({ settings }) => {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-foreground-muted/70">
           <p>{settings.footer_text}</p>
           <div className="flex items-center gap-6">
-            <span className="text-primary font-medium tracking-wide">
+            <Link href="/privacy" className="hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="hover:text-white transition-colors">
+              Terms of Service
+            </Link>
+            <span className="text-primary font-medium tracking-wide hidden md:inline">
               POWERED BY HIGH-PERFORMANCE AUDIO & VISUAL ENGINEERING
             </span>
           </div>
